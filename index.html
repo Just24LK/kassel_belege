@@ -155,7 +155,7 @@
 </head>
 <body>
 
-<div id="loader"><div class="spin"></div><p>PDF wird erstellt …</p></div>
+<div id="loader"><div class="spin"></div><p id="loaderMsg">PDF wird erstellt …</p></div>
 <div id="toast"></div>
 
 <!-- CROP SCREEN -->
@@ -174,7 +174,7 @@
 <!-- HOME -->
 <div class="screen active" id="home">
   <div class="topbar">
-    <img class="topbar-logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MiIgaGVpZ2h0PSI1MiIgdmlld0JveD0iMCAwIDE4MCAxODAiPgogIDxjaXJjbGUgY3g9IjkwIiBjeT0iOTAiIHI9Ijg4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTFhMWEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjkwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLHNlcmlmIiBmb250LXNpemU9IjExMCIgZmlsbD0iIzFhMWExYSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SzwvdGV4dD4KICA8dGV4dCB4PSI5MCIgeT0iMjIiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmaWxsPSIjMWExYTFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBsZXR0ZXItc3BhY2luZz0iOCI+S0FTU0VMPC90ZXh0PgogIDx0ZXh0IHg9IjkwIiB5PSIxNjgiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiMxYTFhMWEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGxldHRlci1zcGFjaW5nPSI0Ij5VTlRFUk5FSE1FTlNHUlVQUEU8L3RleHQ+Cjwvc3ZnPg==" alt="Kassel">
+    <img class="topbar-logo" id="logoHome" alt="Kassel">
     <span class="topbar-wordmark">Belegerfassung</span>
     <div style="width:52px"></div>
   </div>
@@ -241,14 +241,14 @@
     </div>
 
     <button class="submit-btn" onclick="submitBeleg()">✦ &nbsp;PDF erstellen &amp; senden</button>
-    <p class="form-hint">PDF wird als Anhang per Mail gesendet</p>
+    <p class="form-hint">PDF wird direkt als Anhang per Mail gesendet — vollständig auf dem Gerät</p>
   </div>
 </div>
 
 <!-- SETTINGS -->
 <div class="screen" id="settings">
   <div class="topbar">
-    <img class="topbar-logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MiIgaGVpZ2h0PSI1MiIgdmlld0JveD0iMCAwIDE4MCAxODAiPgogIDxjaXJjbGUgY3g9IjkwIiBjeT0iOTAiIHI9Ijg4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTFhMWEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjkwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLHNlcmlmIiBmb250LXNpemU9IjExMCIgZmlsbD0iIzFhMWExYSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SzwvdGV4dD4KICA8dGV4dCB4PSI5MCIgeT0iMjIiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmaWxsPSIjMWExYTFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBsZXR0ZXItc3BhY2luZz0iOCI+S0FTU0VMPC90ZXh0PgogIDx0ZXh0IHg9IjkwIiB5PSIxNjgiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiMxYTFhMWEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGxldHRlci1zcGFjaW5nPSI0Ij5VTlRFUk5FSE1FTlNHUlVQUEU8L3RleHQ+Cjwvc3ZnPg==" alt="Kassel">
+    <img class="topbar-logo" id="logoSettings" alt="Kassel">
     <span class="topbar-wordmark">Einstellungen</span>
     <div style="width:52px"></div>
   </div>
@@ -462,44 +462,51 @@ function getMousePt(e,canvas){
 }
 function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
 function nearestCorner(pt){
-  let best=-1,bestD=999;
+  // Large 55px hit radius so all corners are easy to grab, especially bottom-right
+  let best=-1,bestD=9999;
   cropCorners.forEach((c,i)=>{
     const d=Math.hypot(c.x-pt.x,c.y-pt.y);
-    if(d<bestD&&d<50){bestD=d;best=i;}
+    if(d<bestD){bestD=d;best=i;}
   });
-  return best;
+  // Only snap if within 55px — but if canvas is small, always snap to nearest
+  return (bestD<55)?best:-1;
 }
 
 function drawCrop(){
   const canvas=document.getElementById('cropCanvas');
   const ctx=canvas.getContext('2d');
-  const scale=canvas.width/cropImg.width;
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  // Draw image scaled
+  // Draw image
   ctx.drawImage(cropImg,0,0,canvas.width,canvas.height);
-  // Darken outside
-  ctx.fillStyle='rgba(0,0,0,0.55)';
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  // Cut out polygon
+  // Darken outside polygon
   ctx.save();
   ctx.beginPath();
+  ctx.rect(0,0,canvas.width,canvas.height);
   cropCorners.forEach((c,i)=>i===0?ctx.moveTo(c.x,c.y):ctx.lineTo(c.x,c.y));
   ctx.closePath();
-  ctx.clip();
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(cropImg,0,0,canvas.width,canvas.height);
+  ctx.fillStyle='rgba(0,0,0,0.52)';
+  ctx.fill('evenodd');
   ctx.restore();
-  // Draw border
-  ctx.strokeStyle='#D4A843';ctx.lineWidth=1.5;
+  // Draw bright polygon edge
+  ctx.strokeStyle='#D4A843';ctx.lineWidth=2;
   ctx.beginPath();
   cropCorners.forEach((c,i)=>i===0?ctx.moveTo(c.x,c.y):ctx.lineTo(c.x,c.y));
   ctx.closePath();ctx.stroke();
-  // Draw corner handles
-  cropCorners.forEach(c=>{
-    ctx.fillStyle='#D4A843';
-    ctx.beginPath();ctx.arc(c.x,c.y,10,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#111';
-    ctx.beginPath();ctx.arc(c.x,c.y,4,0,Math.PI*2);ctx.fill();
+  // Draw corner handles: outer glow ring + gold disc + dark center
+  cropCorners.forEach((c,i)=>{
+    // Shadow ring for visibility against any background
+    ctx.beginPath();ctx.arc(c.x,c.y,18,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fill();
+    // Gold disc
+    ctx.beginPath();ctx.arc(c.x,c.y,14,0,Math.PI*2);
+    ctx.fillStyle='#D4A843';ctx.fill();
+    // White ring
+    ctx.beginPath();ctx.arc(c.x,c.y,14,0,Math.PI*2);
+    ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+    // Dark center dot
+    ctx.beginPath();ctx.arc(c.x,c.y,4,0,Math.PI*2);
+    ctx.fillStyle='#111';ctx.fill();
+    // Corner number for debug — removed for production
   });
 }
 
@@ -566,7 +573,11 @@ async function submitBeleg(){
   const bew=[...bewSel].filter(b=>!['Gast','Bewirtungsgrund'].includes(b));
   const mailTo=cfg.firmen.find(f=>f.name===firma)?.mail||'buchhaltung@kassel-group.de';
 
-  document.getElementById('loader').classList.add('on');
+  const loader=document.getElementById('loader');
+  const loaderMsg=document.getElementById('loaderMsg');
+  loaderMsg.textContent='PDF wird erstellt …';
+  loader.classList.add('on');
+
   try{
     const {jsPDF}=window.jspdf;
     const doc=new jsPDF({unit:'mm',format:'a4'});
@@ -574,171 +585,211 @@ async function submitBeleg(){
     const now=new Date();
     const ts=now.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})
       +' · '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr';
+    const tsShort=now.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})
+      +' '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr';
     const bid='KG-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'-'+String(Math.floor(Math.random()*9000)+1000);
 
-    // ── PAGE 1: DECKBLATT ──
-    // Background
-    doc.setFillColor(250,248,243);
-    doc.rect(0,0,W,H,'F');
+    // ────────────────────────────────────────────
+    // PAGE 1 — DECKBLATT (Infos)
+    // ────────────────────────────────────────────
+    function drawFrame(d){
+      // Ivory background
+      d.setFillColor(250,248,243);
+      d.rect(0,0,W,H,'F');
+      // Gold border lines
+      d.setFillColor(212,168,67);
+      d.rect(0,0,W,1,'F');
+      d.rect(0,H-1,W,1,'F');
+      d.rect(0,0,1,H,'F');
+      d.rect(W-1,0,1,H,'F');
+    }
 
-    // Gold top rule
-    doc.setFillColor(212,168,67);
-    doc.rect(0,0,W,0.8,'F');
-    // Gold left rule
-    doc.setFillColor(212,168,67);
-    doc.rect(0,0,0.8,H,'F');
-    // Gold right rule
-    doc.setFillColor(212,168,67);
-    doc.rect(W-0.8,0,0.8,H,'F');
-    // Gold bottom rule
-    doc.setFillColor(212,168,67);
-    doc.rect(0,H-0.8,W,0.8,'F');
+    drawFrame(doc);
 
-    // Logo
-    try{ doc.addImage('data:image/png;base64,'+LOGO_B64,'PNG',14,10,24,24); }catch(e){}
+    // ── Logo (top left) ──
+    try{
+      doc.addImage('data:image/jpeg;base64,'+LOGO_B64,'JPEG',14,11,22,22);
+    }catch(e){
+      // Fallback: draw K circle
+      doc.setDrawColor(26,26,26);doc.setLineWidth(0.6);
+      doc.circle(25,22,10,'S');
+      doc.setFontSize(16);doc.setFont('helvetica','bold');doc.setTextColor(26,26,26);
+      doc.text('K',25,27,{align:'center'});
+    }
 
-    // Header
-    doc.setFontSize(20);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
-    doc.text('KASSEL',44,20);
-    doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
-    doc.text('UNTERNEHMENSGRUPPE',44,26);
-    doc.setFontSize(8);doc.setTextColor(138,133,128);
-    doc.text('GoBD-konforme Belegerfassung · §146a AO',44,32);
+    // ── Header text ──
+    doc.setFontSize(18);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
+    doc.text('KASSEL',42,19);
+    doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
+    doc.text('UNTERNEHMENSGRUPPE',42,25);
+    doc.setFontSize(7);doc.setTextColor(138,133,128);
+    doc.text('GoBD-konforme Belegerfassung  ·  §146a AO',42,31);
 
-    // Gold divider
-    doc.setDrawColor(212,168,67);doc.setLineWidth(0.4);
-    doc.line(14,40,W-14,40);
+    // ── Gold rule ──
+    doc.setDrawColor(212,168,67);doc.setLineWidth(0.5);
+    doc.line(14,38,W-14,38);
 
-    // Beleg meta row
-    doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
-    doc.text('BELEG-ID',14,48);
-    doc.text('ERFASSUNG',90,48);
-    doc.text('ERFASST VON',155,48);
-    doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
-    doc.text(bid,14,55);
-    doc.text(ts,90,55);
-    doc.text(cfg.activeUser||'—',155,55);
-
-    doc.setDrawColor(230,224,212);doc.setLineWidth(0.25);
-    doc.line(14,60,W-14,60);
-
-    // Fields
-    function row(lbl,val,x,y,w){
-      doc.setFillColor(255,255,255);
-      doc.rect(x,y,w,18,'F');
-      doc.setDrawColor(230,224,212);doc.setLineWidth(0.2);
-      doc.rect(x,y,w,18,'S');
-      doc.setFillColor(212,168,67);
-      doc.rect(x,y,1.2,18,'F');
+    // ── Meta strip: ID / Datum / Nutzer ──
+    const metaY=44;
+    // Three columns
+    const cols=[{lbl:'BELEG-ID',val:bid,x:14},{lbl:'ERFASSUNG',val:ts,x:80},{lbl:'ERFASST VON',val:cfg.activeUser||'—',x:162}];
+    cols.forEach(c=>{
       doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
-      doc.text(String(lbl).toUpperCase(),x+4,y+6.5);
-      doc.setFontSize(10.5);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
-      const lines=doc.splitTextToSize(String(val||'—'),w-8);
-      doc.text(lines[0],x+4,y+14);
+      doc.text(c.lbl,c.x,metaY);
+      doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
+      doc.text(c.val,c.x,metaY+6.5);
+    });
+
+    // ── Thin rule ──
+    doc.setDrawColor(220,214,204);doc.setLineWidth(0.2);
+    doc.line(14,56,W-14,56);
+
+    // ── Field rows ──
+    function fieldRow(lbl,val,x,y,w,h){
+      h=h||16;
+      // White card
+      doc.setFillColor(255,255,255);
+      doc.rect(x,y,w,h,'F');
+      doc.setDrawColor(230,224,212);doc.setLineWidth(0.18);
+      doc.rect(x,y,w,h,'S');
+      // Gold left accent bar
+      doc.setFillColor(212,168,67);
+      doc.rect(x,y,1.4,h,'F');
+      // Label
+      doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
+      doc.text(String(lbl).toUpperCase(),x+4.5,y+5.5);
+      // Value
+      doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
+      const lines=doc.splitTextToSize(String(val||'—'),w-7);
+      doc.text(lines[0],x+4.5,y+12.5);
     }
 
-    let cy=66;
-    row('Unternehmen',firma,14,cy,W-28);cy+=22;
-    row('Zahlart',zahlart,14,cy,W-28);cy+=22;
-    if(kfz||obj){
-      const hw=(W-30)/2;
-      if(kfz)row('KFZ',kfz,14,cy,hw);
-      if(obj)row('Objekt',obj,14+(kfz?hw+2:0),cy,hw);
-      cy+=22;
+    let cy=60;
+    const FH=18, GAP=3; // field height and gap
+    fieldRow('Unternehmen',firma,14,cy,W-28,FH); cy+=FH+GAP;
+    fieldRow('Zahlart',zahlart,14,cy,W-28,FH); cy+=FH+GAP;
+
+    // KFZ + Objekt side by side if both present
+    if(kfz&&obj){
+      const hw=(W-28-GAP)/2;
+      fieldRow('KFZ',kfz,14,cy,hw,FH);
+      fieldRow('Objekt',obj,14+hw+GAP,cy,hw,FH);
+      cy+=FH+GAP;
+    } else {
+      if(kfz){fieldRow('KFZ',kfz,14,cy,W-28,FH);cy+=FH+GAP;}
+      if(obj){fieldRow('Objekt',obj,14,cy,W-28,FH);cy+=FH+GAP;}
     }
-    if(bew.length){row('Bewirtung',bew.join(', '),14,cy,W-28);cy+=22;}
-    if(gast){row('Gäste',gast,14,cy,W-28);cy+=22;}
-    if(grund){row('Bewirtungsgrund',grund,14,cy,W-28);cy+=22;}
-    if(info){row('Sonstige Info',info,14,cy,W-28);cy+=22;}
 
-    // GoBD footer note
-    cy+=6;
-    doc.setDrawColor(212,168,67);doc.setLineWidth(0.3);
-    doc.line(14,cy,W-14,cy);cy+=5;
-    doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(138,133,128);
-    doc.text('Dieses Dokument wurde GoBD-konform elektronisch erzeugt (§146a AO). Unveränderlich,',14,cy);cy+=4.5;
-    doc.text('revisionssicher und mit Verfahrensdokumentation archiviert. Erfassung: '+ts,14,cy);
+    if(bew.length){fieldRow('Bewirtung',bew.join(', '),14,cy,W-28,FH);cy+=FH+GAP;}
+    if(gast){fieldRow('Gäste',gast,14,cy,W-28,FH);cy+=FH+GAP;}
+    if(grund){fieldRow('Bewirtungsgrund',grund,14,cy,W-28,FH);cy+=FH+GAP;}
+    if(info){
+      // Info can be multiline — taller box
+      const infoLines=doc.splitTextToSize(info,W-28-7);
+      const infoH=Math.max(FH,10+infoLines.length*5);
+      doc.setFillColor(255,255,255);doc.rect(14,cy,W-28,infoH,'F');
+      doc.setDrawColor(230,224,212);doc.setLineWidth(0.18);doc.rect(14,cy,W-28,infoH,'S');
+      doc.setFillColor(212,168,67);doc.rect(14,cy,1.4,infoH,'F');
+      doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
+      doc.text('SONSTIGE INFO',18.5,cy+5.5);
+      doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
+      doc.text(infoLines,18.5,cy+12.5);
+      cy+=infoH+GAP;
+    }
 
-    // ── PAGE 2: ORIGINAL BELEG ──
+    // ── GoBD Footer ──
+    const footY=H-22;
+    doc.setDrawColor(212,168,67);doc.setLineWidth(0.35);
+    doc.line(14,footY,W-14,footY);
+    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(138,133,128);
+    doc.text('Dieses Dokument wurde GoBD-konform elektronisch erzeugt (§146a AO) · Unveränderlich & revisionssicher · '+tsShort,W/2,footY+5,{align:'center'});
+    doc.setFontSize(6);doc.setTextColor(180,175,165);
+    doc.text('Kassel Unternehmensgruppe · Belegerfassung v2',W/2,footY+10,{align:'center'});
+
+    // ────────────────────────────────────────────
+    // PAGE 2 — ORIGINAL BELEG (nur Foto)
+    // ────────────────────────────────────────────
     doc.addPage();
-    doc.setFillColor(250,248,243);doc.rect(0,0,W,H,'F');
-    doc.setFillColor(212,168,67);doc.rect(0,0,W,0.8,'F');
-    doc.setFillColor(212,168,67);doc.rect(0,0,0.8,H,'F');
-    doc.setFillColor(212,168,67);doc.rect(W-0.8,0,0.8,H,'F');
-    doc.setFillColor(212,168,67);doc.rect(0,H-0.8,W,0.8,'F');
+    drawFrame(doc);
 
+    // Header strip
     doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
-    doc.text('ORIGINAL-BELEG',14,14);
-    doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
+    doc.text('ORIGINAL-BELEG',14,13);
+    doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
     doc.text(bid,14,20);
     doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(138,133,128);
-    doc.text(ts,14,26);
-
-    doc.setDrawColor(212,168,67);doc.setLineWidth(0.3);
+    doc.text(tsShort+'  ·  '+firma+'  ·  '+zahlart,14,26);
+    doc.setDrawColor(212,168,67);doc.setLineWidth(0.4);
     doc.line(14,30,W-14,30);
 
-    // Photo — always show full beleg
+    // Photo — fills available area, always fully visible
     const im=new Image();
-    await new Promise(r=>{im.onload=r;im.onerror=r;im.src=photo;});
-    const iw=im.naturalWidth||1,ih=im.naturalHeight||1;
-    const maxW=W-28, maxH=H-50;
-    let rw=maxW,rh=(ih/iw)*maxW;
-    if(rh>maxH){rh=maxH;rw=(iw/ih)*maxH;}
-    const ix=(W-rw)/2, iy=34;
+    await new Promise(res=>{im.onload=res;im.onerror=res;im.src=photo;});
+    const iw=im.naturalWidth||1, ih=im.naturalHeight||1;
+    const availW=W-28, availH=H-44;  // leave margin top+bottom
+    let rw=availW, rh=(ih/iw)*availW;
+    if(rh>availH){rh=availH;rw=(iw/ih)*availH;}
+    const ix=(W-rw)/2, iy=33+(availH-rh)/2;
     try{doc.addImage(photo,'JPEG',ix,iy,rw,rh);}catch(e){}
 
-    doc.setFontSize(7);doc.setTextColor(180,175,165);
-    doc.text('GoBD · Kassel Unternehmensgruppe · '+ts,W/2,H-4,{align:'center'});
+    // Footer watermark
+    doc.setFontSize(6.5);doc.setTextColor(180,175,165);
+    doc.text('GoBD · Kassel Unternehmensgruppe · '+tsShort,W/2,H-5,{align:'center'});
 
-    // ── OUTPUT: base64 string ──
-    const pdfBase64=doc.output('datauristring');
+    // ── Build PDF as Blob ──
+    const pdfBlob=doc.output('blob');
+    const pdfFilename='Beleg_'+bid+'.pdf';
 
-    // Save history (max 5)
-    const tsDisplay=now.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr';
-    hist.push({ts:now.toISOString(),ts_display:tsDisplay,firma,zahlart,kfz,objekt:obj,id:bid});
+    // Save history
+    hist.push({ts:now.toISOString(),ts_display:tsShort,firma,zahlart,kfz,objekt:obj,id:bid});
     if(hist.length>5)hist=hist.slice(-5);
     save();
 
-    document.getElementById('loader').classList.remove('on');
+    loader.classList.remove('on');
 
-    // ── SEND VIA MAILTO with data URI attachment ──
-    // Since mailto: can't attach files directly, we:
-    // 1. Trigger PDF download
-    // 2. Open mail with instructions
-    const a=document.createElement('a');
-    a.href=pdfBase64;
-    a.download='Beleg_'+bid+'.pdf';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    // ── Share via iOS Share Sheet (navigator.share with files) ──
+    // This is 100% on-device — no data leaves the device except via the user's own mail app.
+    // iOS 16+ supports sharing File objects directly → Mail picks it up as attachment.
+    const pdfFile=new File([pdfBlob],pdfFilename,{type:'application/pdf'});
 
-    const sub=encodeURIComponent('Beleg '+bid+' – '+firma);
-    const bodyText=
-      '✦ KASSEL UNTERNEHMENSGRUPPE — BELEGERFASSUNG\n\n'+
-      'Beleg-ID:        '+bid+'\n'+
-      'Unternehmen: '+firma+'\n'+
-      'Zahlart:           '+zahlart+'\n'+
-      (kfz?'KFZ:                '+kfz+'\n':'')+
-      (obj?'Objekt:           '+obj+'\n':'')+
-      (bew.length?'Bewirtung:     '+bew.join(', ')+'\n':'')+
-      (gast?'Gäste:             '+gast+'\n':'')+
-      (grund?'Grund:            '+grund+'\n':'')+
-      (info?'Info:                 '+info+'\n':'')+
-      '\nErfasst von:  '+cfg.activeUser+'\n'+
-      'Zeitpunkt:      '+tsDisplay+'\n\n'+
-      '→ PDF wurde auf Ihrem Gerät gespeichert.\n'+
-      '→ Bitte als Anhang hinzufügen.\n\n'+
-      'GoBD-konform erfasst · §146a AO · Kassel Unternehmensgruppe';
-
-    setTimeout(()=>{
-      window.location.href='mailto:'+mailTo+'?subject='+sub+'&body='+encodeURIComponent(bodyText);
-      toast('✦ PDF gespeichert — Mail wird geöffnet');
-      showScreen('home');
-    },800);
+    if(navigator.canShare && navigator.canShare({files:[pdfFile]})){
+      // iOS Share Sheet: user picks Mail, PDF lands as attachment automatically
+      try{
+        await navigator.share({
+          files:[pdfFile],
+          title:'Beleg '+bid,
+        });
+        toast('✦ Beleg gesendet');
+        showScreen('home');
+      } catch(shareErr){
+        // User cancelled share — that's fine, still save the file as fallback
+        if(shareErr.name!=='AbortError'){
+          fallbackDownload(doc,pdfFilename,bid,mailTo);
+        }
+      }
+    } else {
+      // Fallback for browsers that don't support file sharing
+      fallbackDownload(doc,pdfFilename,bid,mailTo);
+    }
 
   }catch(err){
     document.getElementById('loader').classList.remove('on');
     toast('Fehler: '+err.message);
     console.error(err);
   }
+}
+
+function fallbackDownload(doc,filename,bid,mailTo){
+  // Download PDF + open mail (best possible without file sharing support)
+  const a=document.createElement('a');
+  a.href=doc.output('datauristring');
+  a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>{
+    window.location.href='mailto:'+mailTo+'?subject='+encodeURIComponent('Beleg '+bid);
+    toast('✦ PDF gespeichert — bitte in Mail anhängen');
+    showScreen('home');
+  },600);
 }
 
 // ── SETTINGS ──
@@ -775,7 +826,13 @@ function saveSettings(){const r=document.querySelector('input[name="au"]:checked
 
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 
-load();refreshHome();populateDropdowns();renderBewGrid();
+load();
+// Set real logo on all topbar img elements
+['logoHome','logoSettings'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.src='data:image/jpeg;base64,'+LOGO_B64;
+});
+refreshHome();populateDropdowns();renderBewGrid();
 </script>
 </body>
 </html>
