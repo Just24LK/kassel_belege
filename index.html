@@ -153,8 +153,8 @@
     #loader p{font-family:'Cormorant',serif;font-size:17px;font-weight:300;font-style:italic;color:var(--ink2);}
 
     /* PHOTO QUALITY CONFIRM */
-    #photoConfirm{visibility:hidden;pointer-events:none;position:fixed;inset:0;z-index:60;background:rgba(10,10,8,0.92);display:flex;flex-direction:column;}
-    #photoConfirm.on{visibility:visible;pointer-events:all;}
+    #photoConfirm{display:none;position:fixed;inset:0;z-index:55;background:rgba(10,10,8,0.92);flex-direction:column;}
+    #photoConfirm.on{display:flex;}
     .pq-topbar{padding:52px 20px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);}
     .pq-title{font-family:'Cormorant',serif;font-size:16px;font-weight:300;font-style:italic;color:rgba(255,255,255,0.75);letter-spacing:0.1em;}
     .pq-img{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:16px;}
@@ -633,6 +633,11 @@ async function submitBeleg(){
 
   document.getElementById('loader').classList.add('on');
   try{
+    const now=new Date();
+    const ts=now.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})
+      +' · '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr';
+    const bid='KG-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'-'+String(Math.floor(Math.random()*9000)+1000);
+
     // ── SHA-256 INTEGRITÄTSHASH ──
     const hashInput=[bid,firma,zahlart,kfz||'',obj||'',bew.join(','),gast||'',grund||'',info||'',cfg.activeUser,now.toISOString(),photo.substring(0,200)].join('|');
     const integrityHash=await sha256(hashInput);
@@ -641,10 +646,6 @@ async function submitBeleg(){
     const {jsPDF}=window.jspdf;
     const doc=new jsPDF({unit:'mm',format:'a4'});
     const W=210, H=297;
-    const now=new Date();
-    const ts=now.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})
-      +' · '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr';
-    const bid='KG-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'-'+String(Math.floor(Math.random()*9000)+1000);
 
     // ── PAGE 1: DECKBLATT ──
     // Background
@@ -783,15 +784,6 @@ async function submitBeleg(){
 
     document.getElementById('loader').classList.remove('on');
 
-    // iOS Safari: open PDF in new tab
-    const newTab=window.open();
-    if(newTab){
-      newTab.document.write('<html><head><title>Beleg '+bid+'</title></head><body style="margin:0"><iframe src="'+pdfBase64+'" style="width:100%;height:100vh;border:none"></iframe></body></html>');
-      newTab.document.close();
-    } else {
-      window.location.href=pdfBase64;
-    }
-
     const sub=encodeURIComponent('Beleg '+bid+' – '+firma);
     const bodyText=
       '✦ KASSEL UNTERNEHMENSGRUPPE — BELEGERFASSUNG\n\n'+
@@ -807,18 +799,25 @@ async function submitBeleg(){
       '\nErfasst von:  '+cfg.activeUser+'\n'+
       'Zeitpunkt:      '+tsDisplay+'\n'+
       'Hash (SHA-256): '+hashShort+'\n\n'+
-      '→ PDF wurde auf Ihrem Gerät gespeichert.\n'+
-      '→ Bitte als Anhang an diese Mail hinzufügen.\n'+
+      '→ PDF im nächsten Tab geöffnet — als Anhang hinzufügen.\n'+
       '→ Diese Mail wird in Mailstore archiviert.\n'+
       '→ Anschließend Weiterleitung an DATEV Unternehmen Online.\n\n'+
       'GoBD-konform · §146a AO · Bildliche Erfassung gemäß GoBD Rz. 130ff.\n'+
       'Archiv: Mailstore (revisionssicher) → DATEV Unternehmen Online';
 
+    // 1. Mail zuerst öffnen (mit korrekter Empfänger-Adresse der gewählten Firma)
+    window.location.href='mailto:'+mailTo+'?subject='+sub+'&body='+encodeURIComponent(bodyText);
+
+    // 2. PDF in neuem Tab öffnen (nach kurzem Delay damit mailto nicht unterbrochen wird)
     setTimeout(()=>{
-      window.location.href='mailto:'+mailTo+'?subject='+sub+'&body='+encodeURIComponent(bodyText);
-      toast('✦ PDF gespeichert — Mail wird geöffnet');
+      const newTab=window.open();
+      if(newTab){
+        newTab.document.write('<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Beleg '+bid+'</title><style>body{margin:0;font-family:-apple-system,sans-serif;background:#FAF8F3;}.bar{background:#111;color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}.bar-title{font-size:13px;letter-spacing:0.12em;text-transform:uppercase;}.hint{background:#F5EDD8;border-bottom:2px solid #D4A843;padding:12px 18px;font-size:13px;color:#8B6520;}.hint strong{display:block;margin-bottom:2px;}iframe{display:block;width:100%;height:calc(100vh - 88px);border:none;}</style></head><body><div class="bar"><span class="bar-title">'+bid+'</span></div><div class="hint"><strong>✦ Anhang hinzufügen:</strong>Teilen → Mail → PDF als Anhang anfügen</div><iframe src="'+pdfBase64+'"></iframe></body></html>');
+        newTab.document.close();
+      }
+      toast('✦ Mail & PDF geöffnet');
       showScreen('home');
-    },800);
+    },600);
 
   }catch(err){
     document.getElementById('loader').classList.remove('on');
@@ -995,16 +994,14 @@ async function genVerfahrensdoku(){
     document.getElementById('loader').classList.remove('on');
 
     const uri=doc.output('datauristring');
-    // iOS Safari: open in new tab so PDF viewer opens
     const newTab=window.open();
     if(newTab){
-      newTab.document.write('<html><head><title>Verfahrensdokumentation</title></head><body style="margin:0"><iframe src="'+uri+'" style="width:100%;height:100vh;border:none"></iframe></body></html>');
+      newTab.document.write(`<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Verfahrensdokumentation</title><style>body{margin:0;font-family:-apple-system,sans-serif;background:#FAF8F3;}.bar{background:#111;color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}.bar-title{font-size:13px;letter-spacing:0.12em;text-transform:uppercase;}.hint{background:#F5EDD8;border-bottom:2px solid #D4A843;padding:12px 18px;font-size:13px;color:#8B6520;}.hint strong{display:block;margin-bottom:2px;}iframe{display:block;width:100%;height:calc(100vh - 90px);border:none;}</style></head><body><div class="bar"><span class="bar-title">Verfahrensdokumentation</span></div><div class="hint"><strong>✦ Per Mail senden:</strong>Teilen-Button (unten) → Mail → Anhang wird automatisch hinzugefügt</div><iframe src="${uri}"></iframe></body></html>`);
       newTab.document.close();
     } else {
-      // Fallback if popup blocked
       window.location.href=uri;
     }
-    toast('✦ Verfahrensdokumentation erstellt');
+    toast('✦ PDF geöffnet — über Teilen senden');
   }catch(err){
     document.getElementById('loader').classList.remove('on');
     toast('Fehler: '+err.message);
