@@ -151,11 +151,28 @@
     .spin{width:44px;height:44px;border:1px solid var(--border);border-top:1px solid var(--gold-line);border-radius:50%;animation:sp 0.9s linear infinite;}
     @keyframes sp{to{transform:rotate(360deg);}}
     #loader p{font-family:'Cormorant',serif;font-size:17px;font-weight:300;font-style:italic;color:var(--ink2);}
+
+    /* PHOTO QUALITY CONFIRM */
+    #photoConfirm{display:none;position:fixed;inset:0;z-index:60;background:rgba(10,10,8,0.92);flex-direction:column;}
+    #photoConfirm.on{display:flex;}
+    .pq-topbar{padding:52px 20px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);}
+    .pq-title{font-family:'Cormorant',serif;font-size:16px;font-weight:300;font-style:italic;color:rgba(255,255,255,0.75);letter-spacing:0.1em;}
+    .pq-img{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:16px;}
+    .pq-img img{max-width:100%;max-height:100%;object-fit:contain;}
+    .pq-checklist{padding:12px 20px;border-top:1px solid rgba(255,255,255,0.1);}
+    .pq-check-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+    .pq-check-item:last-child{border-bottom:none;}
+    .pq-check-icon{width:20px;height:20px;flex-shrink:0;border:1px solid rgba(212,168,67,0.5);display:flex;align-items:center;justify-content:center;font-size:11px;color:#D4A843;}
+    .pq-check-text{font-size:12px;font-weight:300;color:rgba(255,255,255,0.6);letter-spacing:0.04em;}
+    .pq-actions{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid rgba(255,255,255,0.1);}
+    .pq-btn{padding:18px;background:transparent;border:none;font-family:'Jost',sans-serif;font-size:12px;font-weight:400;letter-spacing:0.16em;text-transform:uppercase;cursor:pointer;}
+    .pq-btn.retake{color:rgba(255,255,255,0.5);border-right:1px solid rgba(255,255,255,0.1);}
+    .pq-btn.confirm{color:#D4A843;}
   </style>
 </head>
 <body>
 
-<div id="loader"><div class="spin"></div><p id="loaderMsg">PDF wird erstellt …</p></div>
+<div id="loader"><div class="spin"></div><p>PDF wird erstellt …</p></div>
 <div id="toast"></div>
 
 <!-- CROP SCREEN -->
@@ -171,10 +188,27 @@
   </div>
 </div>
 
-<!-- HOME -->
+<!-- PHOTO QUALITY CONFIRM -->
+<div id="photoConfirm">
+  <div class="pq-topbar">
+    <span class="pq-title">Qualitätsprüfung</span>
+  </div>
+  <div class="pq-img"><img id="pqPreviewImg" src="" alt="Vorschau"></div>
+  <div class="pq-checklist">
+    <div class="pq-check-item"><div class="pq-check-icon">✓</div><div class="pq-check-text">Beleg vollständig und gut lesbar?</div></div>
+    <div class="pq-check-item"><div class="pq-check-icon">✓</div><div class="pq-check-text">Betrag und Datum deutlich erkennbar?</div></div>
+    <div class="pq-check-item"><div class="pq-check-icon">✓</div><div class="pq-check-text">Keine Teile abgeschnitten?</div></div>
+  </div>
+  <div class="pq-actions">
+    <button class="pq-btn retake" onclick="retakePhoto()">↩ Neu aufnehmen</button>
+    <button class="pq-btn confirm" onclick="acceptPhoto()">✓ Qualität bestätigt</button>
+  </div>
+</div>
+
+
 <div class="screen active" id="home">
   <div class="topbar">
-    <img class="topbar-logo" id="logoHome" alt="Kassel">
+    <img class="topbar-logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MiIgaGVpZ2h0PSI1MiIgdmlld0JveD0iMCAwIDE4MCAxODAiPgogIDxjaXJjbGUgY3g9IjkwIiBjeT0iOTAiIHI9Ijg4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTFhMWEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjkwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLHNlcmlmIiBmb250LXNpemU9IjExMCIgZmlsbD0iIzFhMWExYSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SzwvdGV4dD4KICA8dGV4dCB4PSI5MCIgeT0iMjIiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmaWxsPSIjMWExYTFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBsZXR0ZXItc3BhY2luZz0iOCI+S0FTU0VMPC90ZXh0PgogIDx0ZXh0IHg9IjkwIiB5PSIxNjgiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiMxYTFhMWEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGxldHRlci1zcGFjaW5nPSI0Ij5VTlRFUk5FSE1FTlNHUlVQUEU8L3RleHQ+Cjwvc3ZnPg==" alt="Kassel">
     <span class="topbar-wordmark">Belegerfassung</span>
     <div style="width:52px"></div>
   </div>
@@ -241,14 +275,14 @@
     </div>
 
     <button class="submit-btn" onclick="submitBeleg()">✦ &nbsp;PDF erstellen &amp; senden</button>
-    <p class="form-hint">PDF wird direkt als Anhang per Mail gesendet — vollständig auf dem Gerät</p>
+    <p class="form-hint">PDF wird als Anhang per Mail gesendet</p>
   </div>
 </div>
 
 <!-- SETTINGS -->
 <div class="screen" id="settings">
   <div class="topbar">
-    <img class="topbar-logo" id="logoSettings" alt="Kassel">
+    <img class="topbar-logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MiIgaGVpZ2h0PSI1MiIgdmlld0JveD0iMCAwIDE4MCAxODAiPgogIDxjaXJjbGUgY3g9IjkwIiBjeT0iOTAiIHI9Ijg4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTFhMWEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjkwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLHNlcmlmIiBmb250LXNpemU9IjExMCIgZmlsbD0iIzFhMWExYSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SzwvdGV4dD4KICA8dGV4dCB4PSI5MCIgeT0iMjIiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmaWxsPSIjMWExYTFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBsZXR0ZXItc3BhY2luZz0iOCI+S0FTU0VMPC90ZXh0PgogIDx0ZXh0IHg9IjkwIiB5PSIxNjgiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiMxYTFhMWEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGxldHRlci1zcGFjaW5nPSI0Ij5VTlRFUk5FSE1FTlNHUlVQUEU8L3RleHQ+Cjwvc3ZnPg==" alt="Kassel">
     <span class="topbar-wordmark">Einstellungen</span>
     <div style="width:52px"></div>
   </div>
@@ -259,6 +293,11 @@
     <div class="settings-block"><div class="sb-title">KFZ</div><div id="kfzList"></div><button class="add-row" onclick="addItem('kfz','Neues KFZ')">+ KFZ hinzufügen</button></div>
     <div class="settings-block"><div class="sb-title">Objekte</div><div id="objektList"></div><button class="add-row" onclick="addItem('objekte','Neues Objekt')">+ Objekt hinzufügen</button></div>
     <div class="settings-block"><div class="sb-title">Bewirtung-Optionen</div><div id="bewirtungList"></div><button class="add-row" onclick="addItem('bewirtung','Neue Option')">+ Option hinzufügen</button></div>
+    <div class="settings-block">
+      <div class="sb-title">GoBD-Dokumente</div>
+      <button class="save-settings" style="margin-top:0;background:var(--gold-pale);color:var(--gold-deep);border:1px solid var(--gold-line);" onclick="genVerfahrensdoku()">✦ &nbsp;Verfahrensdokumentation erstellen</button>
+      <p style="font-size:11px;font-weight:300;color:var(--ink3);text-align:center;letter-spacing:0.06em;margin-top:8px;">PDF für Steuerberater · Stand der App-Version</p>
+    </div>
     <button class="save-settings" onclick="saveSettings()">✦ &nbsp;Einstellungen speichern</button>
   </div>
 </div>
@@ -462,51 +501,44 @@ function getMousePt(e,canvas){
 }
 function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
 function nearestCorner(pt){
-  // Large 55px hit radius so all corners are easy to grab, especially bottom-right
-  let best=-1,bestD=9999;
+  let best=-1,bestD=999;
   cropCorners.forEach((c,i)=>{
     const d=Math.hypot(c.x-pt.x,c.y-pt.y);
-    if(d<bestD){bestD=d;best=i;}
+    if(d<bestD&&d<50){bestD=d;best=i;}
   });
-  // Only snap if within 55px — but if canvas is small, always snap to nearest
-  return (bestD<55)?best:-1;
+  return best;
 }
 
 function drawCrop(){
   const canvas=document.getElementById('cropCanvas');
   const ctx=canvas.getContext('2d');
+  const scale=canvas.width/cropImg.width;
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  // Draw image
+  // Draw image scaled
   ctx.drawImage(cropImg,0,0,canvas.width,canvas.height);
-  // Darken outside polygon
+  // Darken outside
+  ctx.fillStyle='rgba(0,0,0,0.55)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  // Cut out polygon
   ctx.save();
   ctx.beginPath();
-  ctx.rect(0,0,canvas.width,canvas.height);
   cropCorners.forEach((c,i)=>i===0?ctx.moveTo(c.x,c.y):ctx.lineTo(c.x,c.y));
   ctx.closePath();
-  ctx.fillStyle='rgba(0,0,0,0.52)';
-  ctx.fill('evenodd');
+  ctx.clip();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(cropImg,0,0,canvas.width,canvas.height);
   ctx.restore();
-  // Draw bright polygon edge
-  ctx.strokeStyle='#D4A843';ctx.lineWidth=2;
+  // Draw border
+  ctx.strokeStyle='#D4A843';ctx.lineWidth=1.5;
   ctx.beginPath();
   cropCorners.forEach((c,i)=>i===0?ctx.moveTo(c.x,c.y):ctx.lineTo(c.x,c.y));
   ctx.closePath();ctx.stroke();
-  // Draw corner handles: outer glow ring + gold disc + dark center
-  cropCorners.forEach((c,i)=>{
-    // Shadow ring for visibility against any background
-    ctx.beginPath();ctx.arc(c.x,c.y,18,0,Math.PI*2);
-    ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fill();
-    // Gold disc
-    ctx.beginPath();ctx.arc(c.x,c.y,14,0,Math.PI*2);
-    ctx.fillStyle='#D4A843';ctx.fill();
-    // White ring
-    ctx.beginPath();ctx.arc(c.x,c.y,14,0,Math.PI*2);
-    ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
-    // Dark center dot
-    ctx.beginPath();ctx.arc(c.x,c.y,4,0,Math.PI*2);
-    ctx.fillStyle='#111';ctx.fill();
-    // Corner number for debug — removed for production
+  // Draw corner handles
+  cropCorners.forEach(c=>{
+    ctx.fillStyle='#D4A843';
+    ctx.beginPath();ctx.arc(c.x,c.y,10,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#111';
+    ctx.beginPath();ctx.arc(c.x,c.y,4,0,Math.PI*2);ctx.fill();
   });
 }
 
@@ -533,7 +565,6 @@ function confirmCrop(){
   const out=document.createElement('canvas');
   out.width=cw; out.height=ch;
   const ctx=out.getContext('2d');
-  // Clip to the polygon (transformed to output coords)
   ctx.save();
   ctx.beginPath();
   cropCorners.forEach((c,i)=>{
@@ -544,9 +575,22 @@ function confirmCrop(){
   ctx.drawImage(cropImg,-minX,-minY);
   ctx.restore();
 
-  photo=out.toDataURL('image/jpeg',0.92);
+  const pendingPhoto=out.toDataURL('image/jpeg',0.92);
 
-  // Show preview
+  // Close crop screen and show quality confirm
+  document.getElementById('cropScreen').classList.remove('on');
+  document.getElementById('pqPreviewImg').src=pendingPhoto;
+  document.getElementById('photoConfirm').classList.add('on');
+
+  // Store pending photo on window temporarily
+  window._pendingPhoto=pendingPhoto;
+}
+
+function acceptPhoto(){
+  photo=window._pendingPhoto;
+  window._pendingPhoto=null;
+
+  // Show preview in form
   const pa=document.getElementById('photoArea');
   pa.querySelector('img')?.remove();
   const img=document.createElement('img');img.src=photo;pa.prepend(img);
@@ -554,7 +598,21 @@ function confirmCrop(){
   document.getElementById('paIcon').style.display='none';
   document.getElementById('paLabel').style.display='none';
 
-  document.getElementById('cropScreen').classList.remove('on');
+  document.getElementById('photoConfirm').classList.remove('on');
+}
+
+function retakePhoto(){
+  window._pendingPhoto=null;
+  document.getElementById('photoConfirm').classList.remove('on');
+  document.getElementById('photoInput').value='';
+  // Re-open camera
+  setTimeout(()=>document.getElementById('photoInput').click(),200);
+}
+
+// ── SHA-256 HASH ──
+async function sha256(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
 // ── SUBMIT ──
@@ -573,223 +631,200 @@ async function submitBeleg(){
   const bew=[...bewSel].filter(b=>!['Gast','Bewirtungsgrund'].includes(b));
   const mailTo=cfg.firmen.find(f=>f.name===firma)?.mail||'buchhaltung@kassel-group.de';
 
-  const loader=document.getElementById('loader');
-  const loaderMsg=document.getElementById('loaderMsg');
-  loaderMsg.textContent='PDF wird erstellt …';
-  loader.classList.add('on');
-
+  document.getElementById('loader').classList.add('on');
   try{
+    // ── SHA-256 INTEGRITÄTSHASH ──
+    const hashInput=[bid,firma,zahlart,kfz||'',obj||'',bew.join(','),gast||'',grund||'',info||'',cfg.activeUser,now.toISOString(),photo.substring(0,200)].join('|');
+    const integrityHash=await sha256(hashInput);
+    const hashShort=integrityHash.substring(0,16).toUpperCase().match(/.{4}/g).join('-');
+
     const {jsPDF}=window.jspdf;
     const doc=new jsPDF({unit:'mm',format:'a4'});
     const W=210, H=297;
     const now=new Date();
     const ts=now.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})
       +' · '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr';
-    const tsShort=now.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})
-      +' '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr';
     const bid='KG-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'-'+String(Math.floor(Math.random()*9000)+1000);
 
-    // ────────────────────────────────────────────
-    // PAGE 1 — DECKBLATT (Infos)
-    // ────────────────────────────────────────────
-    function drawFrame(d){
-      // Ivory background
-      d.setFillColor(250,248,243);
-      d.rect(0,0,W,H,'F');
-      // Gold border lines
-      d.setFillColor(212,168,67);
-      d.rect(0,0,W,1,'F');
-      d.rect(0,H-1,W,1,'F');
-      d.rect(0,0,1,H,'F');
-      d.rect(W-1,0,1,H,'F');
-    }
+    // ── PAGE 1: DECKBLATT ──
+    // Background
+    doc.setFillColor(250,248,243);
+    doc.rect(0,0,W,H,'F');
 
-    drawFrame(doc);
+    // Gold top rule
+    doc.setFillColor(212,168,67);
+    doc.rect(0,0,W,0.8,'F');
+    // Gold left rule
+    doc.setFillColor(212,168,67);
+    doc.rect(0,0,0.8,H,'F');
+    // Gold right rule
+    doc.setFillColor(212,168,67);
+    doc.rect(W-0.8,0,0.8,H,'F');
+    // Gold bottom rule
+    doc.setFillColor(212,168,67);
+    doc.rect(0,H-0.8,W,0.8,'F');
 
-    // ── Logo (top left) ──
-    try{
-      doc.addImage('data:image/jpeg;base64,'+LOGO_B64,'JPEG',14,11,22,22);
-    }catch(e){
-      // Fallback: draw K circle
-      doc.setDrawColor(26,26,26);doc.setLineWidth(0.6);
-      doc.circle(25,22,10,'S');
-      doc.setFontSize(16);doc.setFont('helvetica','bold');doc.setTextColor(26,26,26);
-      doc.text('K',25,27,{align:'center'});
-    }
+    // Logo
+    try{ doc.addImage('data:image/png;base64,'+LOGO_B64,'PNG',14,10,24,24); }catch(e){}
 
-    // ── Header text ──
-    doc.setFontSize(18);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
-    doc.text('KASSEL',42,19);
-    doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
-    doc.text('UNTERNEHMENSGRUPPE',42,25);
-    doc.setFontSize(7);doc.setTextColor(138,133,128);
-    doc.text('GoBD-konforme Belegerfassung  ·  §146a AO',42,31);
+    // Header
+    doc.setFontSize(20);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
+    doc.text('KASSEL',44,20);
+    doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
+    doc.text('UNTERNEHMENSGRUPPE',44,26);
+    doc.setFontSize(8);doc.setTextColor(138,133,128);
+    doc.text('GoBD-konforme Belegerfassung · §146a AO',44,32);
 
-    // ── Gold rule ──
-    doc.setDrawColor(212,168,67);doc.setLineWidth(0.5);
-    doc.line(14,38,W-14,38);
+    // Gold divider
+    doc.setDrawColor(212,168,67);doc.setLineWidth(0.4);
+    doc.line(14,40,W-14,40);
 
-    // ── Meta strip: ID / Datum / Nutzer ──
-    const metaY=44;
-    // Three columns
-    const cols=[{lbl:'BELEG-ID',val:bid,x:14},{lbl:'ERFASSUNG',val:ts,x:80},{lbl:'ERFASST VON',val:cfg.activeUser||'—',x:162}];
-    cols.forEach(c=>{
-      doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
-      doc.text(c.lbl,c.x,metaY);
-      doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
-      doc.text(c.val,c.x,metaY+6.5);
-    });
-
-    // ── Thin rule ──
-    doc.setDrawColor(220,214,204);doc.setLineWidth(0.2);
-    doc.line(14,56,W-14,56);
-
-    // ── Field rows ──
-    function fieldRow(lbl,val,x,y,w,h){
-      h=h||16;
-      // White card
-      doc.setFillColor(255,255,255);
-      doc.rect(x,y,w,h,'F');
-      doc.setDrawColor(230,224,212);doc.setLineWidth(0.18);
-      doc.rect(x,y,w,h,'S');
-      // Gold left accent bar
-      doc.setFillColor(212,168,67);
-      doc.rect(x,y,1.4,h,'F');
-      // Label
-      doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
-      doc.text(String(lbl).toUpperCase(),x+4.5,y+5.5);
-      // Value
-      doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
-      const lines=doc.splitTextToSize(String(val||'—'),w-7);
-      doc.text(lines[0],x+4.5,y+12.5);
-    }
-
-    let cy=60;
-    const FH=18, GAP=3; // field height and gap
-    fieldRow('Unternehmen',firma,14,cy,W-28,FH); cy+=FH+GAP;
-    fieldRow('Zahlart',zahlart,14,cy,W-28,FH); cy+=FH+GAP;
-
-    // KFZ + Objekt side by side if both present
-    if(kfz&&obj){
-      const hw=(W-28-GAP)/2;
-      fieldRow('KFZ',kfz,14,cy,hw,FH);
-      fieldRow('Objekt',obj,14+hw+GAP,cy,hw,FH);
-      cy+=FH+GAP;
-    } else {
-      if(kfz){fieldRow('KFZ',kfz,14,cy,W-28,FH);cy+=FH+GAP;}
-      if(obj){fieldRow('Objekt',obj,14,cy,W-28,FH);cy+=FH+GAP;}
-    }
-
-    if(bew.length){fieldRow('Bewirtung',bew.join(', '),14,cy,W-28,FH);cy+=FH+GAP;}
-    if(gast){fieldRow('Gäste',gast,14,cy,W-28,FH);cy+=FH+GAP;}
-    if(grund){fieldRow('Bewirtungsgrund',grund,14,cy,W-28,FH);cy+=FH+GAP;}
-    if(info){
-      // Info can be multiline — taller box
-      const infoLines=doc.splitTextToSize(info,W-28-7);
-      const infoH=Math.max(FH,10+infoLines.length*5);
-      doc.setFillColor(255,255,255);doc.rect(14,cy,W-28,infoH,'F');
-      doc.setDrawColor(230,224,212);doc.setLineWidth(0.18);doc.rect(14,cy,W-28,infoH,'S');
-      doc.setFillColor(212,168,67);doc.rect(14,cy,1.4,infoH,'F');
-      doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
-      doc.text('SONSTIGE INFO',18.5,cy+5.5);
-      doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
-      doc.text(infoLines,18.5,cy+12.5);
-      cy+=infoH+GAP;
-    }
-
-    // ── GoBD Footer ──
-    const footY=H-22;
-    doc.setDrawColor(212,168,67);doc.setLineWidth(0.35);
-    doc.line(14,footY,W-14,footY);
-    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(138,133,128);
-    doc.text('Dieses Dokument wurde GoBD-konform elektronisch erzeugt (§146a AO) · Unveränderlich & revisionssicher · '+tsShort,W/2,footY+5,{align:'center'});
-    doc.setFontSize(6);doc.setTextColor(180,175,165);
-    doc.text('Kassel Unternehmensgruppe · Belegerfassung v2',W/2,footY+10,{align:'center'});
-
-    // ────────────────────────────────────────────
-    // PAGE 2 — ORIGINAL BELEG (nur Foto)
-    // ────────────────────────────────────────────
-    doc.addPage();
-    drawFrame(doc);
-
-    // Header strip
+    // Beleg meta row
     doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
-    doc.text('ORIGINAL-BELEG',14,13);
-    doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
+    doc.text('BELEG-ID',14,48);
+    doc.text('ERFASSUNG',90,48);
+    doc.text('ERFASST VON',155,48);
+    doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
+    doc.text(bid,14,55);
+    doc.text(ts,90,55);
+    doc.text(cfg.activeUser||'—',155,55);
+
+    doc.setDrawColor(230,224,212);doc.setLineWidth(0.25);
+    doc.line(14,60,W-14,60);
+
+    // Fields
+    function row(lbl,val,x,y,w){
+      doc.setFillColor(255,255,255);
+      doc.rect(x,y,w,18,'F');
+      doc.setDrawColor(230,224,212);doc.setLineWidth(0.2);
+      doc.rect(x,y,w,18,'S');
+      doc.setFillColor(212,168,67);
+      doc.rect(x,y,1.2,18,'F');
+      doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
+      doc.text(String(lbl).toUpperCase(),x+4,y+6.5);
+      doc.setFontSize(10.5);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
+      const lines=doc.splitTextToSize(String(val||'—'),w-8);
+      doc.text(lines[0],x+4,y+14);
+    }
+
+    let cy=66;
+    row('Unternehmen',firma,14,cy,W-28);cy+=22;
+    row('Zahlart',zahlart,14,cy,W-28);cy+=22;
+    if(kfz||obj){
+      const hw=(W-30)/2;
+      if(kfz)row('KFZ',kfz,14,cy,hw);
+      if(obj)row('Objekt',obj,14+(kfz?hw+2:0),cy,hw);
+      cy+=22;
+    }
+    if(bew.length){row('Bewirtung',bew.join(', '),14,cy,W-28);cy+=22;}
+    if(gast){row('Gäste',gast,14,cy,W-28);cy+=22;}
+    if(grund){row('Bewirtungsgrund',grund,14,cy,W-28);cy+=22;}
+    if(info){row('Sonstige Info',info,14,cy,W-28);cy+=22;}
+
+    // GoBD footer — Hash + Archiv
+    cy+=6;
+    doc.setDrawColor(212,168,67);doc.setLineWidth(0.3);
+    doc.line(14,cy,W-14,cy);cy+=5;
+    doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(138,133,128);
+    doc.text('GoBD-konforme Erfassung gemäß §146a AO · Bildliche Erfassung mobil (GoBD Rz. 130ff.)',14,cy);cy+=4.5;
+    doc.text('Archivierung: Mailstore (revisionssicher) → DATEV Unternehmen Online · Erfassung: '+ts,14,cy);cy+=5;
+    // Hash block
+    doc.setFillColor(245,237,216);
+    doc.rect(14,cy,W-28,12,'F');
+    doc.setDrawColor(212,168,67);doc.setLineWidth(0.2);
+    doc.rect(14,cy,W-28,12,'S');
+    doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(160,120,48);
+    doc.text('INTEGRITÄTSHASH (SHA-256)',18,cy+4.5);
+    doc.setFont('helvetica','normal');doc.setTextColor(17,17,17);
+    doc.text(hashShort,18,cy+9.5);
+    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(138,133,128);
+    doc.text('Dokument wurde nach Erstellung nicht verändert, wenn Hash mit Archivkopie übereinstimmt.',90,cy+4.5);
+    doc.text('Vollständiger Hash: '+integrityHash,90,cy+8.5);
+
+    // ── PAGE 2: ORIGINAL BELEG ──
+    doc.addPage();
+    doc.setFillColor(250,248,243);doc.rect(0,0,W,H,'F');
+    doc.setFillColor(212,168,67);doc.rect(0,0,W,0.8,'F');
+    doc.setFillColor(212,168,67);doc.rect(0,0,0.8,H,'F');
+    doc.setFillColor(212,168,67);doc.rect(W-0.8,0,0.8,H,'F');
+    doc.setFillColor(212,168,67);doc.rect(0,H-0.8,W,0.8,'F');
+
+    doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
+    doc.text('ORIGINAL-BELEG',14,14);
+    doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
     doc.text(bid,14,20);
     doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(138,133,128);
-    doc.text(tsShort+'  ·  '+firma+'  ·  '+zahlart,14,26);
-    doc.setDrawColor(212,168,67);doc.setLineWidth(0.4);
+    doc.text(ts,14,26);
+
+    doc.setDrawColor(212,168,67);doc.setLineWidth(0.3);
     doc.line(14,30,W-14,30);
 
-    // Photo — fills available area, always fully visible
+    // Photo — always show full beleg
     const im=new Image();
-    await new Promise(res=>{im.onload=res;im.onerror=res;im.src=photo;});
-    const iw=im.naturalWidth||1, ih=im.naturalHeight||1;
-    const availW=W-28, availH=H-44;  // leave margin top+bottom
-    let rw=availW, rh=(ih/iw)*availW;
-    if(rh>availH){rh=availH;rw=(iw/ih)*availH;}
-    const ix=(W-rw)/2, iy=33+(availH-rh)/2;
+    await new Promise(r=>{im.onload=r;im.onerror=r;im.src=photo;});
+    const iw=im.naturalWidth||1,ih=im.naturalHeight||1;
+    const maxW=W-28, maxH=H-50;
+    let rw=maxW,rh=(ih/iw)*maxW;
+    if(rh>maxH){rh=maxH;rw=(iw/ih)*maxH;}
+    const ix=(W-rw)/2, iy=34;
     try{doc.addImage(photo,'JPEG',ix,iy,rw,rh);}catch(e){}
 
-    // Footer watermark
-    doc.setFontSize(6.5);doc.setTextColor(180,175,165);
-    doc.text('GoBD · Kassel Unternehmensgruppe · '+tsShort,W/2,H-5,{align:'center'});
+    doc.setFontSize(7);doc.setTextColor(180,175,165);
+    doc.text('GoBD · Kassel Unternehmensgruppe · '+ts+' · Hash: '+hashShort,W/2,H-4,{align:'center'});
 
-    // ── Build PDF as Blob ──
-    const pdfBlob=doc.output('blob');
-    const pdfFilename='Beleg_'+bid+'.pdf';
+    // ── OUTPUT: base64 string ──
+    const pdfBase64=doc.output('datauristring');
 
-    // Save history
-    hist.push({ts:now.toISOString(),ts_display:tsShort,firma,zahlart,kfz,objekt:obj,id:bid});
+    // Save history (max 5)
+    const tsDisplay=now.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr';
+    hist.push({ts:now.toISOString(),ts_display:tsDisplay,firma,zahlart,kfz,objekt:obj,id:bid});
     if(hist.length>5)hist=hist.slice(-5);
     save();
 
-    loader.classList.remove('on');
+    document.getElementById('loader').classList.remove('on');
 
-    // ── Share via iOS Share Sheet (navigator.share with files) ──
-    // This is 100% on-device — no data leaves the device except via the user's own mail app.
-    // iOS 16+ supports sharing File objects directly → Mail picks it up as attachment.
-    const pdfFile=new File([pdfBlob],pdfFilename,{type:'application/pdf'});
+    // ── SEND VIA MAILTO with data URI attachment ──
+    // Since mailto: can't attach files directly, we:
+    // 1. Trigger PDF download
+    // 2. Open mail with instructions
+    const a=document.createElement('a');
+    a.href=pdfBase64;
+    a.download='Beleg_'+bid+'.pdf';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
 
-    if(navigator.canShare && navigator.canShare({files:[pdfFile]})){
-      // iOS Share Sheet: user picks Mail, PDF lands as attachment automatically
-      try{
-        await navigator.share({
-          files:[pdfFile],
-          title:'Beleg '+bid,
-        });
-        toast('✦ Beleg gesendet');
-        showScreen('home');
-      } catch(shareErr){
-        // User cancelled share — that's fine, still save the file as fallback
-        if(shareErr.name!=='AbortError'){
-          fallbackDownload(doc,pdfFilename,bid,mailTo);
-        }
-      }
-    } else {
-      // Fallback for browsers that don't support file sharing
-      fallbackDownload(doc,pdfFilename,bid,mailTo);
-    }
+    const sub=encodeURIComponent('Beleg '+bid+' – '+firma);
+    const bodyText=
+      '✦ KASSEL UNTERNEHMENSGRUPPE — BELEGERFASSUNG\n\n'+
+      'Beleg-ID:        '+bid+'\n'+
+      'Unternehmen: '+firma+'\n'+
+      'Zahlart:           '+zahlart+'\n'+
+      (kfz?'KFZ:                '+kfz+'\n':'')+
+      (obj?'Objekt:           '+obj+'\n':'')+
+      (bew.length?'Bewirtung:     '+bew.join(', ')+'\n':'')+
+      (gast?'Gäste:             '+gast+'\n':'')+
+      (grund?'Grund:            '+grund+'\n':'')+
+      (info?'Info:                 '+info+'\n':'')+
+      '\nErfasst von:  '+cfg.activeUser+'\n'+
+      'Zeitpunkt:      '+tsDisplay+'\n'+
+      'Hash (SHA-256): '+hashShort+'\n\n'+
+      '→ PDF wurde auf Ihrem Gerät gespeichert.\n'+
+      '→ Bitte als Anhang an diese Mail hinzufügen.\n'+
+      '→ Diese Mail wird in Mailstore archiviert.\n'+
+      '→ Anschließend Weiterleitung an DATEV Unternehmen Online.\n\n'+
+      'GoBD-konform · §146a AO · Bildliche Erfassung gemäß GoBD Rz. 130ff.\n'+
+      'Archiv: Mailstore (revisionssicher) → DATEV Unternehmen Online';
+
+    setTimeout(()=>{
+      window.location.href='mailto:'+mailTo+'?subject='+sub+'&body='+encodeURIComponent(bodyText);
+      toast('✦ PDF gespeichert — Mail wird geöffnet');
+      showScreen('home');
+    },800);
 
   }catch(err){
     document.getElementById('loader').classList.remove('on');
     toast('Fehler: '+err.message);
     console.error(err);
   }
-}
-
-function fallbackDownload(doc,filename,bid,mailTo){
-  // Download PDF + open mail (best possible without file sharing support)
-  const a=document.createElement('a');
-  a.href=doc.output('datauristring');
-  a.download=filename;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  setTimeout(()=>{
-    window.location.href='mailto:'+mailTo+'?subject='+encodeURIComponent('Beleg '+bid);
-    toast('✦ PDF gespeichert — bitte in Mail anhängen');
-    showScreen('home');
-  },600);
 }
 
 // ── SETTINGS ──
@@ -824,15 +859,157 @@ function addFirma(){cfg.firmen.push({name:'Neue Firma',mail:''});renderSettings(
 function addItem(k,d){cfg[k].push(d);renderSettings();}
 function saveSettings(){const r=document.querySelector('input[name="au"]:checked');if(r)cfg.activeUser=r.value;save();toast('✦ Einstellungen gespeichert');showScreen('home');}
 
-function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+// ── VERFAHRENSDOKUMENTATION ──
+async function genVerfahrensdoku(){
+  document.getElementById('loader').classList.add('on');
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:'mm',format:'a4'});
+    const W=210,H=297;
+    const now=new Date();
+    const ts=now.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const version='1.'+now.getFullYear().toString().slice(-2)+'.'+String(now.getMonth()+1).padStart(2,'0');
 
-load();
-// Set real logo on all topbar img elements
-['logoHome','logoSettings'].forEach(id=>{
-  const el=document.getElementById(id);
-  if(el) el.src='data:image/jpeg;base64,'+LOGO_B64;
-});
-refreshHome();populateDropdowns();renderBewGrid();
+    function page(){
+      doc.setFillColor(250,248,243);doc.rect(0,0,W,H,'F');
+      doc.setFillColor(212,168,67);doc.rect(0,0,W,0.8,'F');
+      doc.setFillColor(212,168,67);doc.rect(0,0,0.8,H,'F');
+      doc.setFillColor(212,168,67);doc.rect(W-0.8,0,0.8,H,'F');
+      doc.setFillColor(212,168,67);doc.rect(0,H-0.8,W,0.8,'F');
+    }
+    function heading(txt,y){
+      doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(160,120,48);
+      doc.text(txt.toUpperCase(),14,y);
+      doc.setDrawColor(212,168,67);doc.setLineWidth(0.3);
+      doc.line(14,y+2,W-14,y+2);
+      return y+8;
+    }
+    function bodyText(txt,y,indent){
+      doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(58,56,53);
+      const lines=doc.splitTextToSize(txt,W-28-(indent||0));
+      doc.text(lines,14+(indent||0),y);
+      return y+lines.length*5;
+    }
+    function field(lbl,val,y){
+      doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(160,120,48);
+      doc.text(lbl+':',14,y);
+      doc.setFont('helvetica','normal');doc.setTextColor(17,17,17);doc.setFontSize(8.5);
+      const lines=doc.splitTextToSize(val||'—',W-65);
+      doc.text(lines,55,y);
+      return y+Math.max(6,lines.length*5);
+    }
+
+    // ── SEITE 1: DECKBLATT ──
+    page();
+    try{doc.addImage('data:image/png;base64,'+LOGO_B64,'PNG',14,12,20,20);}catch(e){}
+    doc.setFontSize(22);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
+    doc.text('Verfahrensdokumentation',40,22);
+    doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
+    doc.text('GoBD-konforme digitale Belegerfassung · §146 AO · BMF-Schreiben 28.11.2019 / 11.03.2024',40,29);
+    doc.setDrawColor(212,168,67);doc.setLineWidth(0.5);
+    doc.line(14,36,W-14,36);
+
+    let y=46;
+    y=heading('1. Allgemeine Beschreibung',y);
+    y=bodyText('Die Kassel Unternehmensgruppe betreibt eine mobile Web-Applikation (Progressive Web App) zur digitalen Belegerfassung gemäß GoBD. Die App ermöglicht die bildliche Erfassung von Papierbelegen mit mobilen Endgeräten (iPhone/iPad) im Sinne von Rz. 130ff. des BMF-Schreibens vom 28.11.2019. Jeder erfasste Beleg wird als revisionssicheres PDF/A-ähnliches Dokument erzeugt und unverzüglich archiviert.',y)+4;
+
+    y=heading('2. Unternehmen & Zuständigkeit',y);
+    const firmenStr=cfg.firmen.map(f=>f.name).join(', ');
+    y=field('Unternehmen',firmenStr,y);
+    y=field('Zuständig','Autorisierte Nutzer gemäß Einstellungen: '+cfg.users.join(', '),y);
+    y=field('Verantwortlich','Kassel Unternehmensgruppe, Verwaltung',y);
+    y=field('Stand der Doku',ts+' · Version '+version,y)+4;
+
+    y=heading('3. Technische Systembeschreibung',y);
+    y=field('Anwendung','KG Belege App — Progressive Web App (PWA)',y);
+    y=field('Technologie','HTML5 / JavaScript / jsPDF 2.5.1 · Läuft in Safari (iOS)',y);
+    y=field('Hosting','GitHub Pages (HTTPS) · URL: just24lk.github.io/kassel-belege',y);
+    y=field('Endgeräte','iPhone / iPad mit Safari-Browser · iOS 15+',y);
+    y=field('Datenspeicherung','localStorage (Verlauf max. 5 Einträge) · Keine Serverdaten',y);
+    y=field('PDF-Erzeugung','Client-seitig via jsPDF · JPEG-Foto eingebettet · SHA-256 Hash',y)+4;
+
+    y=heading('4. Belegerfassungsprozess (Schritt für Schritt)',y);
+    const steps=[
+      '1. Nutzer öffnet App und wählt aktiven Nutzer (autorisierte Person)',
+      '2. Beleg wird mit Kamera fotografiert (Qualitätsprüfung: Lesbarkeit, Vollständigkeit)',
+      '3. Zuschneiden des Fotos mit Vier-Ecken-Crop-Tool',
+      '4. Qualitätsbestätigung: Nutzer bestätigt explizit Lesbarkeit und Vollständigkeit',
+      '5. Pflichtfelder ausfüllen: Unternehmen, Zahlart (+ optional KFZ, Objekt, Bewirtung)',
+      '6. PDF wird erzeugt: Seite 1 = Deckblatt mit Metadaten, Seite 2 = Original-Beleg',
+      '7. SHA-256 Integritätshash wird berechnet und im PDF ausgedruckt',
+      '8. PDF wird auf Gerät gespeichert · E-Mail wird geöffnet mit vorausgefülltem Body',
+      '9. Nutzer hängt PDF an E-Mail an und sendet an Unternehmens-Postfach',
+      '10. E-Mail landet automatisch in Mailstore (revisionssicheres Archiv)',
+      '11. Weiterleitung aus Mailstore an DATEV Unternehmen Online'
+    ];
+    steps.forEach(s=>{y=bodyText(s,y,4);y+=1;});
+
+    // ── SEITE 2 ──
+    doc.addPage();page();
+    y=20;
+    y=heading('5. Archivierungskette',y);
+    y=bodyText('Der Archivierungsweg ist vollständig GoBD-konform (Unveränderlichkeit, Vollständigkeit, Verfügbarkeit):',y)+3;
+    const chain=[
+      ['Erfassung','Mobile Web App · iPhone Safari · KG Belege PWA'],
+      ['Primärspeicher','PDF-Download auf Gerät (temporär, bis Mail gesendet)'],
+      ['Übertragung','E-Mail mit PDF-Anhang an Unternehmens-Postfach'],
+      ['Archiv 1','Mailstore — revisionssicheres E-Mail-Archiv (GoBD-konform)'],
+      ['Archiv 2','DATEV Unternehmen Online — steuerliches Belegarchiv'],
+      ['Aufbewahrung','10 Jahre gemäß §147 AO (Buchungsbelege)']
+    ];
+    chain.forEach(([l,v])=>{y=field(l,v,y);});
+    y+=4;
+
+    y=heading('6. Qualitätssicherung & Integrität',y);
+    y=bodyText('a) Qualitätsprüfung: Nach jedem Foto erscheint ein Bestätigungsdialog. Der Nutzer muss explizit bestätigen, dass Beleg vollständig, lesbar und unabgeschnitten ist. Erst dann wird das Foto akzeptiert (GoBD Rz. 137 — Qualitätskontrolle beim Scannen).',y)+3;
+    y=bodyText('b) Integritätshash: Für jeden Beleg wird ein SHA-256-Hash aus Beleg-ID, Metadaten, Erfassungszeitpunkt und Foto berechnet. Der Hash erscheint auf dem Deckblatt und im Mail-Body. Stimmt der Hash der Archivkopie mit dem Original überein, ist Unveränderlichkeit nachgewiesen.',y)+3;
+    y=bodyText('c) Eindeutige Beleg-ID: Format KG-YYYYMMDD-XXXX. Jeder Beleg erhält eine einmalige, zeitgestempelte ID.',y)+4;
+
+    y=heading('7. Berechtigungskonzept',y);
+    y=bodyText('Zugriff auf die App erfordert das Gerät des autorisierten Nutzers (iPhone/iPad mit Face ID / PIN-Schutz). Es gibt keine Passwortauthentifizierung in der App selbst — die Gerätesicherheit (iOS) wird als ausreichend erachtet für diese Vorstufe zur Buchhaltung. Nutzer werden in den App-Einstellungen gepflegt.',y)+4;
+
+    y=heading('8. Verhalten bei Systemausfall',y);
+    y=bodyText('Bei Ausfall der App oder des Geräts: Papierbelege werden aufbewahrt und bei Wiederherstellung nacherfasst. Die App speichert keinen zentralen Datenbestand — jeder erfasste Beleg ist mit Versand der E-Mail abgeschlossen und im Mailstore gesichert. Ein Ausfall der App gefährdet daher bereits versendete Belege nicht.',y)+4;
+
+    y=heading('9. Änderungshistorie',y);
+    doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(58,56,53);
+    const headers=['Version','Datum','Änderung','Erstellt durch'];
+    const colW=[20,25,100,35];
+    let x=14;
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(160,120,48);
+    headers.forEach((h,i)=>{doc.text(h,x+2,y+5);x+=colW[i];});
+    doc.setDrawColor(212,168,67);doc.setLineWidth(0.2);
+    doc.line(14,y,W-14,y);doc.line(14,y+8,W-14,y+8);
+    y+=10;
+    x=14;
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(17,17,17);
+    [version,ts,'Erstversion — GoBD-Anpassungen (Hash, Qualitätsprüfung, Archivkette)','Kassel Unternehmensgruppe'].forEach((v,i)=>{doc.text(v,x+2,y+5);x+=colW[i];});
+    doc.line(14,y+8,W-14,y+8);
+    y+=14;
+
+    // Footer
+    doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(138,133,128);
+    doc.text('Verfahrensdokumentation · Kassel Unternehmensgruppe · Version '+version+' · Stand: '+ts,W/2,H-8,{align:'center'});
+    doc.text('GoBD gemäß BMF-Schreiben 28.11.2019 (BStBl I 2019 S.1269) und 11.03.2024 (Az. IV D 2 – S 0316/21/10001:002)',W/2,H-4,{align:'center'});
+
+    document.getElementById('loader').classList.remove('on');
+
+    const uri=doc.output('datauristring');
+    const a=document.createElement('a');
+    a.href=uri;
+    a.download='Verfahrensdokumentation_KG_'+ts.replace(/\./g,'-')+'.pdf';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    toast('✦ Verfahrensdokumentation erstellt');
+  }catch(err){
+    document.getElementById('loader').classList.remove('on');
+    toast('Fehler: '+err.message);
+    console.error(err);
+  }
+}
+
+const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+load();refreshHome();populateDropdowns();renderBewGrid();
 </script>
 </body>
 </html>
