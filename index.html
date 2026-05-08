@@ -805,19 +805,27 @@ async function submitBeleg(){
       'GoBD-konform · §146a AO · Bildliche Erfassung gemäß GoBD Rz. 130ff.\n'+
       'Archiv: Mailstore (revisionssicher) → DATEV Unternehmen Online';
 
-    // 1. Mail zuerst öffnen (mit korrekter Empfänger-Adresse der gewählten Firma)
-    window.location.href='mailto:'+mailTo+'?subject='+sub+'&body='+encodeURIComponent(bodyText);
+    // PDF als Blob für natives iOS Share Sheet
+    const pdfBlob=doc.output('blob');
+    const pdfFile=new File([pdfBlob],'Beleg_'+bid+'.pdf',{type:'application/pdf'});
 
-    // 2. PDF in neuem Tab öffnen (nach kurzem Delay damit mailto nicht unterbrochen wird)
-    setTimeout(()=>{
-      const newTab=window.open();
-      if(newTab){
-        newTab.document.write('<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Beleg '+bid+'</title><style>body{margin:0;font-family:-apple-system,sans-serif;background:#FAF8F3;}.bar{background:#111;color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}.bar-title{font-size:13px;letter-spacing:0.12em;text-transform:uppercase;}.hint{background:#F5EDD8;border-bottom:2px solid #D4A843;padding:12px 18px;font-size:13px;color:#8B6520;}.hint strong{display:block;margin-bottom:2px;}iframe{display:block;width:100%;height:calc(100vh - 88px);border:none;}</style></head><body><div class="bar"><span class="bar-title">'+bid+'</span></div><div class="hint"><strong>✦ Anhang hinzufügen:</strong>Teilen → Mail → PDF als Anhang anfügen</div><iframe src="'+pdfBase64+'"></iframe></body></html>');
-        newTab.document.close();
-      }
-      toast('✦ Mail & PDF geöffnet');
-      showScreen('home');
-    },600);
+    // iOS Share Sheet: Mail auswählen → PDF automatisch als Anhang
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[pdfFile]})){
+      try{
+        await navigator.share({files:[pdfFile],title:'Beleg '+bid,text:firma+' · '+zahlart+'\nID: '+bid+'\nHash: '+hashShort});
+      }catch(e){/* User cancelled */}
+    } else {
+      // Fallback Desktop/Android: Download + mailto
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(pdfBlob);
+      a.download='Beleg_'+bid+'.pdf';
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(()=>{
+        window.location.href='mailto:'+mailTo+'?subject='+encodeURIComponent('Beleg '+bid+' – '+firma)+'&body='+encodeURIComponent('Beleg-ID: '+bid+'\nFirma: '+firma+'\nZahlart: '+zahlart+'\nHash: '+hashShort+'\n\nPDF heruntergeladen – bitte anhängen.');
+      },400);
+    }
+    toast('✦ Beleg '+bid+' erfasst');
+    showScreen('home');
 
   }catch(err){
     document.getElementById('loader').classList.remove('on');
@@ -993,15 +1001,21 @@ async function genVerfahrensdoku(){
 
     document.getElementById('loader').classList.remove('on');
 
-    const uri=doc.output('datauristring');
-    const newTab=window.open();
-    if(newTab){
-      newTab.document.write(`<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Verfahrensdokumentation</title><style>body{margin:0;font-family:-apple-system,sans-serif;background:#FAF8F3;}.bar{background:#111;color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}.bar-title{font-size:13px;letter-spacing:0.12em;text-transform:uppercase;}.hint{background:#F5EDD8;border-bottom:2px solid #D4A843;padding:12px 18px;font-size:13px;color:#8B6520;}.hint strong{display:block;margin-bottom:2px;}iframe{display:block;width:100%;height:calc(100vh - 90px);border:none;}</style></head><body><div class="bar"><span class="bar-title">Verfahrensdokumentation</span></div><div class="hint"><strong>✦ Per Mail senden:</strong>Teilen-Button (unten) → Mail → Anhang wird automatisch hinzugefügt</div><iframe src="${uri}"></iframe></body></html>`);
-      newTab.document.close();
+    const vdBlob=doc.output('blob');
+    const vdFile=new File([vdBlob],'Verfahrensdokumentation_KG_'+ts.replace(/\./g,'-')+'.pdf',{type:'application/pdf'});
+
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[vdFile]})){
+      try{
+        await navigator.share({files:[vdFile],title:'Verfahrensdokumentation Kassel Unternehmensgruppe',text:'GoBD-Verfahrensdokumentation · Version '+version+' · Stand '+ts});
+      }catch(e){/* User cancelled */}
     } else {
-      window.location.href=uri;
+      // Fallback: Download
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(vdBlob);
+      a.download='Verfahrensdokumentation_KG_'+ts.replace(/\./g,'-')+'.pdf';
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
     }
-    toast('✦ PDF geöffnet — über Teilen senden');
+    toast('✦ Verfahrensdokumentation erstellt');
   }catch(err){
     document.getElementById('loader').classList.remove('on');
     toast('Fehler: '+err.message);
