@@ -96,6 +96,18 @@
     #cropContainer{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:20px;}
     #cropCanvas{max-width:100%;max-height:100%;touch-action:none;}
 
+    /* Page2 Dialog */
+    #page2Dialog{display:none;position:fixed;inset:0;z-index:60;background:rgba(10,10,8,0.88);align-items:center;justify-content:center;}
+    #page2Dialog.on{display:flex;}
+    .p2d-box{background:var(--cream);border:1px solid var(--gold-line);border-radius:4px;padding:28px 24px;max-width:300px;width:90%;text-align:center;}
+    .p2d-icon{font-size:28px;color:var(--gold);margin-bottom:12px;}
+    .p2d-title{font-family:'Cormorant',serif;font-size:17px;font-weight:500;color:var(--ink1);letter-spacing:0.04em;margin-bottom:8px;}
+    .p2d-text{font-size:12px;font-weight:300;color:var(--ink3);letter-spacing:0.06em;margin-bottom:20px;line-height:1.5;}
+    .p2d-btns{display:flex;gap:10px;justify-content:center;}
+    .p2d-btn{flex:1;padding:11px 8px;font-family:'Jost',sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;border-radius:2px;cursor:pointer;border:1px solid var(--gold-line);}
+    .p2d-btn.yes{background:var(--gold-line);color:#111;}
+    .p2d-btn.no{background:transparent;color:var(--gold-deep);}
+
     .field-group{background:var(--white);border:1px solid var(--border);margin-bottom:2px;padding:0 20px;}
     .field-group-title{font-size:10px;font-weight:400;letter-spacing:0.24em;text-transform:uppercase;color:var(--gold);padding:18px 0 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
     .field-group-title .gt-line{flex:1;height:1px;background:linear-gradient(90deg,var(--gold-line),transparent);opacity:0.4;}
@@ -185,6 +197,19 @@
   <p class="crop-hint">Ecken ziehen zum Zuschneiden</p>
   <div id="cropContainer">
     <canvas id="cropCanvas"></canvas>
+  </div>
+</div>
+
+<!-- PAGE 2 DIALOG -->
+<div id="page2Dialog">
+  <div class="p2d-box">
+    <div class="p2d-icon">◎</div>
+    <div class="p2d-title">Zweite Seite?</div>
+    <div class="p2d-text">Hat dieser Beleg noch eine zweite Seite, die ebenfalls erfasst werden soll?</div>
+    <div class="p2d-btns">
+      <button class="p2d-btn yes" onclick="page2Yes()">✦ Ja, Seite 2</button>
+      <button class="p2d-btn no" onclick="page2No()">Nein</button>
+    </div>
   </div>
 </div>
 
@@ -328,7 +353,7 @@ const DEFAULTS={
   bewirtung:['NK','JK']
 };
 
-let cfg={}, hist=[], photo=null, bewSel=new Set();
+let cfg={}, hist=[], photo=null, photo2=null, bewSel=new Set();
 // Crop state
 let cropImg=null, cropCorners=[], dragging=-1, lastTouch=null;
 
@@ -406,12 +431,14 @@ function clearHist(){
 
 // ── FORM ──
 function resetForm(){
-  photo=null;bewSel=new Set();
+  photo=null;photo2=null;bewSel=new Set();
+  window._addingPage2=false;
   const pa=document.getElementById('photoArea');
   pa.querySelector('img')?.remove();
   pa.classList.remove('has-photo');
   document.getElementById('paIcon').style.display='';
   document.getElementById('paLabel').style.display='';
+  document.getElementById('photoArea2')?.remove();
   ['fFirma','fZahlart','fKfz','fObjekt','fGast','fGrund','fInfo'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
@@ -470,8 +497,8 @@ function openCrop(dataUrl){
     const scale=Math.min(maxW/cropImg.width, maxH/cropImg.height, 1);
     canvas.width=cropImg.width*scale;
     canvas.height=cropImg.height*scale;
-    // Initial corners: full image with 10px inset
-    const p=10;
+    // Initial corners: full image with 20px inset for easier grabbing
+    const p=20;
     cropCorners=[
       {x:p,y:p},
       {x:canvas.width-p,y:p},
@@ -504,7 +531,7 @@ function nearestCorner(pt){
   let best=-1,bestD=999;
   cropCorners.forEach((c,i)=>{
     const d=Math.hypot(c.x-pt.x,c.y-pt.y);
-    if(d<bestD&&d<50){bestD=d;best=i;}
+    if(d<bestD&&d<70){bestD=d;best=i;}  // 70px Hit-Radius
   });
   return best;
 }
@@ -536,9 +563,9 @@ function drawCrop(){
   // Draw corner handles
   cropCorners.forEach(c=>{
     ctx.fillStyle='#D4A843';
-    ctx.beginPath();ctx.arc(c.x,c.y,10,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(c.x,c.y,14,0,Math.PI*2);ctx.fill();  // größerer Handle
     ctx.fillStyle='#111';
-    ctx.beginPath();ctx.arc(c.x,c.y,4,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(c.x,c.y,5,0,Math.PI*2);ctx.fill();
   });
 }
 
@@ -575,7 +602,18 @@ function confirmCrop(){
   ctx.drawImage(cropImg,-minX,-minY);
   ctx.restore();
 
-  const pendingPhoto=out.toDataURL('image/jpeg',0.92);
+  // Komprimierung: max 1200px Breite/Höhe, Qualität 0.55 → kleine PDF
+  const MAX_PX=1200;
+  let finalCanvas=out;
+  if(out.width>MAX_PX||out.height>MAX_PX){
+    const sc=Math.min(MAX_PX/out.width,MAX_PX/out.height);
+    const comp=document.createElement('canvas');
+    comp.width=Math.round(out.width*sc);
+    comp.height=Math.round(out.height*sc);
+    comp.getContext('2d').drawImage(out,0,0,comp.width,comp.height);
+    finalCanvas=comp;
+  }
+  const pendingPhoto=finalCanvas.toDataURL('image/jpeg',0.55);
 
   // Close crop screen and show quality confirm
   document.getElementById('cropScreen').classList.remove('on');
@@ -587,8 +625,41 @@ function confirmCrop(){
 }
 
 function acceptPhoto(){
-  photo=window._pendingPhoto;
+  const pending=window._pendingPhoto;
   window._pendingPhoto=null;
+  document.getElementById('photoConfirm').classList.remove('on');
+
+  if(window._addingPage2){
+    // Wir fügen gerade die 2. Seite hinzu
+    window._addingPage2=false;
+    photo2=pending;
+    // Update Vorschau in der Form
+    let pa2=document.getElementById('photoArea2');
+    if(!pa2){
+      pa2=document.createElement('div');
+      pa2.id='photoArea2';
+      pa2.style.cssText='margin-top:4px;padding:8px 20px;background:var(--white);border:1px solid var(--border);display:flex;align-items:center;gap:10px;';
+      const imgEl2=document.createElement('img');
+      imgEl2.src=photo2;
+      imgEl2.style.cssText='width:60px;height:60px;object-fit:cover;border:1px solid var(--border);border-radius:2px;';
+      const lbl2=document.createElement('span');
+      lbl2.style.cssText='font-size:11px;color:var(--ink3);letter-spacing:0.06em;';
+      lbl2.textContent='Seite 2 hinzugefügt';
+      const del2=document.createElement('button');
+      del2.textContent='✕';
+      del2.style.cssText='margin-left:auto;background:none;border:none;color:var(--ink4);font-size:14px;cursor:pointer;';
+      del2.onclick=()=>{photo2=null;pa2.remove();};
+      pa2.append(imgEl2,lbl2,del2);
+      document.getElementById('photoArea').after(pa2);
+    } else {
+      pa2.querySelector('img').src=photo2;
+    }
+    toast('✦ Seite 2 hinzugefügt');
+    return;
+  }
+
+  // Erste Seite akzeptieren
+  photo=pending;
 
   // Show preview in form
   const pa=document.getElementById('photoArea');
@@ -598,7 +669,8 @@ function acceptPhoto(){
   document.getElementById('paIcon').style.display='none';
   document.getElementById('paLabel').style.display='none';
 
-  document.getElementById('photoConfirm').classList.remove('on');
+  // Dialog: Zweite Seite?
+  document.getElementById('page2Dialog').classList.add('on');
 }
 
 function retakePhoto(){
@@ -607,6 +679,17 @@ function retakePhoto(){
   document.getElementById('photoInput').value='';
   // Re-open camera
   setTimeout(()=>document.getElementById('photoInput').click(),200);
+}
+
+function page2Yes(){
+  document.getElementById('page2Dialog').classList.remove('on');
+  window._addingPage2=true;
+  document.getElementById('photoInput').value='';
+  setTimeout(()=>document.getElementById('photoInput').click(),200);
+}
+
+function page2No(){
+  document.getElementById('page2Dialog').classList.remove('on');
 }
 
 // ── SHA-256 HASH ──
@@ -639,7 +722,7 @@ async function submitBeleg(){
     const bid='KG-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'-'+String(Math.floor(Math.random()*9000)+1000);
 
     // ── SHA-256 INTEGRITÄTSHASH ──
-    const hashInput=[bid,firma,zahlart,kfz||'',obj||'',bew.join(','),gast||'',grund||'',info||'',cfg.activeUser,now.toISOString(),photo.substring(0,200)].join('|');
+    const hashInput=[bid,firma,zahlart,kfz||'',obj||'',bew.join(','),gast||'',grund||'',info||'',cfg.activeUser,now.toISOString(),photo.substring(0,200),(photo2||'').substring(0,100)].join('|');
     const integrityHash=await sha256(hashInput);
     const hashShort=integrityHash.substring(0,16).toUpperCase().match(/.{4}/g).join('-');
 
@@ -771,7 +854,34 @@ async function submitBeleg(){
     try{doc.addImage(photo,'JPEG',ix,iy,rw,rh);}catch(e){}
 
     doc.setFontSize(7);doc.setTextColor(180,175,165);
-    doc.text('GoBD · Kassel Unternehmensgruppe · '+ts+' · Hash: '+hashShort,W/2,H-4,{align:'center'});
+    doc.text('GoBD · Kassel Unternehmensgruppe · '+ts+' · Hash: '+hashShort+(photo2?' · Seite 1/2':''),W/2,H-4,{align:'center'});
+
+    // ── PAGE 3: ORIGINAL BELEG SEITE 2 (optional) ──
+    if(photo2){
+      doc.addPage();
+      doc.setFillColor(250,248,243);doc.rect(0,0,W,H,'F');
+      doc.setFillColor(212,168,67);doc.rect(0,0,W,0.8,'F');
+      doc.setFillColor(212,168,67);doc.rect(0,0,0.8,H,'F');
+      doc.setFillColor(212,168,67);doc.rect(W-0.8,0,0.8,H,'F');
+      doc.setFillColor(212,168,67);doc.rect(0,H-0.8,W,0.8,'F');
+      doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
+      doc.text('ORIGINAL-BELEG · SEITE 2',14,14);
+      doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
+      doc.text(bid,14,20);
+      doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(138,133,128);
+      doc.text(ts,14,26);
+      doc.setDrawColor(212,168,67);doc.setLineWidth(0.3);
+      doc.line(14,30,W-14,30);
+      const im2=new Image();
+      await new Promise(r=>{im2.onload=r;im2.onerror=r;im2.src=photo2;});
+      const iw2=im2.naturalWidth||1,ih2=im2.naturalHeight||1;
+      let rw2=maxW,rh2=(ih2/iw2)*maxW;
+      if(rh2>maxH){rh2=maxH;rw2=(iw2/ih2)*maxH;}
+      const ix2=(W-rw2)/2;
+      try{doc.addImage(photo2,'JPEG',ix2,34,rw2,rh2);}catch(e){}
+      doc.setFontSize(7);doc.setTextColor(180,175,165);
+      doc.text('GoBD · Kassel Unternehmensgruppe · '+ts+' · Hash: '+hashShort+' · Seite 2/2',W/2,H-4,{align:'center'});
+    }
 
     // ── OUTPUT: base64 string ──
     const pdfBase64=doc.output('datauristring');
@@ -784,46 +894,46 @@ async function submitBeleg(){
 
     document.getElementById('loader').classList.remove('on');
 
-    const sub=encodeURIComponent('Beleg '+bid+' – '+firma);
-    const bodyText=
-      '✦ KASSEL UNTERNEHMENSGRUPPE — BELEGERFASSUNG\n\n'+
-      'Beleg-ID:        '+bid+'\n'+
-      'Unternehmen: '+firma+'\n'+
-      'Zahlart:           '+zahlart+'\n'+
-      (kfz?'KFZ:                '+kfz+'\n':'')+
-      (obj?'Objekt:           '+obj+'\n':'')+
-      (bew.length?'Bewirtung:     '+bew.join(', ')+'\n':'')+
-      (gast?'Gäste:             '+gast+'\n':'')+
-      (grund?'Grund:            '+grund+'\n':'')+
-      (info?'Info:                 '+info+'\n':'')+
-      '\nErfasst von:  '+cfg.activeUser+'\n'+
-      'Zeitpunkt:      '+tsDisplay+'\n'+
-      'Hash (SHA-256): '+hashShort+'\n\n'+
-      '→ PDF im nächsten Tab geöffnet — als Anhang hinzufügen.\n'+
-      '→ Diese Mail wird in Mailstore archiviert.\n'+
-      '→ Anschließend Weiterleitung an DATEV Unternehmen Online.\n\n'+
-      'GoBD-konform · §146a AO · Bildliche Erfassung gemäß GoBD Rz. 130ff.\n'+
-      'Archiv: Mailstore (revisionssicher) → DATEV Unternehmen Online';
-
     // PDF als Blob für natives iOS Share Sheet
     const pdfBlob=doc.output('blob');
     const pdfFile=new File([pdfBlob],'Beleg_'+bid+'.pdf',{type:'application/pdf'});
+
+    // Immer zuerst PDF herunterladen
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(pdfBlob);
+    a.download='Beleg_'+bid+'.pdf';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
 
     // iOS Share Sheet: Mail auswählen → PDF automatisch als Anhang
     if(navigator.share && navigator.canShare && navigator.canShare({files:[pdfFile]})){
       try{
         await navigator.share({files:[pdfFile],title:'Beleg '+bid,text:firma+' · '+zahlart+'\nID: '+bid+'\nHash: '+hashShort});
-      }catch(e){/* User cancelled */}
-    } else {
-      // Fallback Desktop/Android: Download + mailto
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(pdfBlob);
-      a.download='Beleg_'+bid+'.pdf';
-      document.body.appendChild(a);a.click();document.body.removeChild(a);
-      setTimeout(()=>{
-        window.location.href='mailto:'+mailTo+'?subject='+encodeURIComponent('Beleg '+bid+' – '+firma)+'&body='+encodeURIComponent('Beleg-ID: '+bid+'\nFirma: '+firma+'\nZahlart: '+zahlart+'\nHash: '+hashShort+'\n\nPDF heruntergeladen – bitte anhängen.');
-      },400);
+      }catch(e){/* User cancelled oder nicht unterstützt */}
     }
+    // Immer mailto öffnen mit vorausgefüllter Empfängeradresse
+    setTimeout(()=>{
+      window.location.href='mailto:'+mailTo
+        +'?subject='+encodeURIComponent('Beleg '+bid+' – '+firma)
+        +'&body='+encodeURIComponent(
+          '✦ KASSEL UNTERNEHMENSGRUPPE — BELEGERFASSUNG\n\n'+
+          'Beleg-ID:        '+bid+'\n'+
+          'Unternehmen: '+firma+'\n'+
+          'Zahlart:           '+zahlart+'\n'+
+          (kfz?'KFZ:                '+kfz+'\n':'')+
+          (obj?'Objekt:           '+obj+'\n':'')+
+          (bew.length?'Bewirtung:     '+bew.join(', ')+'\n':'')+
+          (gast?'Gäste:             '+gast+'\n':'')+
+          (grund?'Grund:            '+grund+'\n':'')+
+          (info?'Info:                 '+info+'\n':'')+
+          '\nErfasst von:  '+cfg.activeUser+'\n'+
+          'Zeitpunkt:      '+tsDisplay+'\n'+
+          'Hash (SHA-256): '+hashShort+'\n\n'+
+          '→ PDF wurde heruntergeladen — bitte als Anhang hinzufügen.\n'+
+          '→ Diese Mail wird in Mailstore archiviert.\n'+
+          '→ Anschließend Weiterleitung an DATEV Unternehmen Online.\n\n'+
+          'GoBD-konform · §146a AO · Bildliche Erfassung gemäß GoBD Rz. 130ff.'
+        );
+    },600);
     toast('✦ Beleg '+bid+' erfasst');
     showScreen('home');
 
