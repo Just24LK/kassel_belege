@@ -890,40 +890,26 @@ async function submitBeleg(){
     save();
 
     document.getElementById('loader').classList.remove('on');
+
+    // PDF als Datei → natives iOS Share Sheet
+    const pdfBlob=doc.output('blob');
+    const pdfFile=new File([pdfBlob],'Beleg_'+bid+'.pdf',{type:'application/pdf'});
+
+    if(navigator.canShare && navigator.canShare({files:[pdfFile]})){
+      // iOS: Share Sheet öffnet sich, Nutzer wählt Mail → PDF ist Anhang
+      try{
+        await navigator.share({files:[pdfFile],title:'Beleg '+bid});
+      }catch(e){/* Nutzer hat abgebrochen */}
+    } else {
+      // Fallback Desktop/Android: Download
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(pdfBlob);
+      a.download='Beleg_'+bid+'.pdf';
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+    }
+
     toast('✦ Beleg '+bid+' erfasst');
     showScreen('home');
-
-    // 1) PDF herunterladen
-    const pdfBlob=doc.output('blob');
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(pdfBlob);
-    a.download='Beleg_'+bid+'.pdf';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-
-    // 2) Mail-App öffnen mit vorausgefüllter Adresse + Betreff + Text
-    //    (kurze Verzögerung damit der Download startet bevor Safari wechselt)
-    setTimeout(()=>{
-      const mailBody=
-        '✦ KASSEL UNTERNEHMENSGRUPPE — BELEGERFASSUNG\n\n'+
-        'Beleg-ID:        '+bid+'\n'+
-        'Unternehmen: '+firma+'\n'+
-        'Zahlart:           '+zahlart+'\n'+
-        (kfz?'KFZ:                '+kfz+'\n':'')+
-        (obj?'Objekt:           '+obj+'\n':'')+
-        (bew.length?'Bewirtung:     '+bew.join(', ')+'\n':'')+
-        (gast?'Gäste:             '+gast+'\n':'')+
-        (grund?'Grund:            '+grund+'\n':'')+
-        (info?'Info:                 '+info+'\n':'')+
-        '\nErfasst von:  '+cfg.activeUser+'\n'+
-        'Zeitpunkt:      '+tsDisplay+'\n'+
-        'Hash (SHA-256): '+hashShort+'\n\n'+
-        '→ PDF ist heruntergeladen — bitte als Anhang hinzufügen.\n'+
-        '→ Diese Mail wird in Mailstore archiviert.\n'+
-        'GoBD-konform · §146a AO · GoBD Rz. 130ff.';
-      window.location.href='mailto:'+mailTo
-        +'?subject='+encodeURIComponent('Beleg '+bid+' – '+firma)
-        +'&body='+encodeURIComponent(mailBody);
-    },800);
 
   }catch(err){
     document.getElementById('loader').classList.remove('on');
