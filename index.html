@@ -155,7 +155,8 @@
     /* PHOTO QUALITY CONFIRM */
     #photoConfirm{display:none;position:fixed;inset:0;z-index:55;background:rgba(10,10,8,0.92);flex-direction:column;}
     #photoConfirm.on{display:flex;}
-    #page2Dialog.on{display:flex !important;}
+    #page2Dialog{display:none;position:fixed;inset:0;z-index:60;background:rgba(10,10,8,0.88);align-items:center;justify-content:center;flex-direction:column;padding:32px;}
+    #page2Dialog.on{display:flex;}
     .pq-topbar{padding:52px 20px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);}
     .pq-title{font-family:'Cormorant',serif;font-size:16px;font-weight:300;font-style:italic;color:rgba(255,255,255,0.75);letter-spacing:0.1em;}
     .pq-img{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:16px;}
@@ -206,11 +207,10 @@
   </div>
 </div>
 
-<!-- ZWEITE SEITE DIALOG -->
-<div id="page2Dialog" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(10,10,8,0.88);align-items:center;justify-content:center;flex-direction:column;padding:32px;">
+<div id="page2Dialog">
   <div style="background:var(--white);max-width:340px;width:100%;padding:32px 28px;">
     <div style="font-family:'Cormorant',serif;font-size:20px;font-weight:400;color:var(--ink);margin-bottom:6px;">Zweite Seite?</div>
-    <div style="font-family:'Jost',sans-serif;font-size:13px;color:var(--ink3);margin-bottom:28px;line-height:1.5;">Hat der Beleg eine Rückseite oder eine zweite Seite, die ebenfalls erfasst werden soll?</div>
+    <div style="font-family:'Jost',sans-serif;font-size:13px;color:var(--ink3);margin-bottom:28px;line-height:1.5;">Hat der Beleg eine Rückseite oder zweite Seite?</div>
     <div style="display:flex;gap:12px;">
       <button onclick="skipSecondPage()" style="flex:1;padding:14px;border:1px solid var(--border);background:transparent;font-family:'Jost',sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink3);cursor:pointer;">Nein</button>
       <button onclick="addSecondPage()" style="flex:1;padding:14px;border:1px solid var(--gold-line);background:var(--gold-pale);font-family:'Jost',sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold-deep);cursor:pointer;">✦ Ja, Seite 2</button>
@@ -587,15 +587,11 @@ function confirmCrop(){
   ctx.drawImage(cropImg,-minX,-minY);
   ctx.restore();
 
-  // Compress: resize to max 1200px on longest side, quality 0.55
+  // Compress: resize to max 1200px, quality 0.55
   const MAX_PX=1200;
   let fw=out.width, fh=out.height;
-  if(fw>MAX_PX||fh>MAX_PX){
-    const sc=Math.min(MAX_PX/fw,MAX_PX/fh);
-    fw=Math.round(fw*sc); fh=Math.round(fh*sc);
-  }
-  const comp=document.createElement('canvas');
-  comp.width=fw; comp.height=fh;
+  if(fw>MAX_PX||fh>MAX_PX){const sc=Math.min(MAX_PX/fw,MAX_PX/fh);fw=Math.round(fw*sc);fh=Math.round(fh*sc);}
+  const comp=document.createElement('canvas');comp.width=fw;comp.height=fh;
   comp.getContext('2d').drawImage(out,0,0,fw,fh);
   const pendingPhoto=comp.toDataURL('image/jpeg',0.55);
 
@@ -609,58 +605,43 @@ function confirmCrop(){
 }
 
 function acceptPhoto(){
-  const isSecondPage=window._pendingIsPage2||false;
+  const isPage2=window._pendingIsPage2||false;
   const pho=window._pendingPhoto;
   window._pendingPhoto=null;
   window._pendingIsPage2=false;
-
-  if(isSecondPage){
-    // Accept as page 2
+  if(isPage2){
     photo2=pho;
     document.getElementById('photoConfirm').classList.remove('on');
-    // Show page2 indicator in form
     const pa=document.getElementById('photoArea');
-    let badge=pa.querySelector('.page2-badge');
-    if(!badge){badge=document.createElement('div');badge.className='page2-badge';badge.style.cssText='position:absolute;bottom:8px;right:8px;background:var(--gold-line);color:#111;font-size:10px;font-family:Jost,sans-serif;padding:3px 7px;letter-spacing:0.1em;z-index:2;';pa.style.position='relative';pa.appendChild(badge);}
-    badge.textContent='+ SEITE 2';
+    let b=pa.querySelector('.p2b');
+    if(!b){b=document.createElement('div');b.className='p2b';b.style.cssText='position:absolute;bottom:8px;right:8px;background:var(--gold-line);color:#111;font-size:10px;font-family:Jost,sans-serif;padding:3px 7px;letter-spacing:0.1em;z-index:2;';pa.style.position='relative';pa.appendChild(b);}
+    b.textContent='+ SEITE 2';
     toast('✦ Seite 2 hinzugefügt');
     return;
   }
-
-  // First photo
-  photo=pho;
-  photo2=null; // reset any previous page2
-
-  // Show preview in form
+  photo=pho; photo2=null;
   const pa=document.getElementById('photoArea');
   pa.querySelector('img')?.remove();
-  pa.querySelector('.page2-badge')?.remove();
+  pa.querySelector('.p2b')?.remove();
   const img=document.createElement('img');img.src=photo;pa.prepend(img);
   pa.classList.add('has-photo');
   document.getElementById('paIcon').style.display='none';
   document.getElementById('paLabel').style.display='none';
-
   document.getElementById('photoConfirm').classList.remove('on');
-
-  // Ask about second page
   document.getElementById('page2Dialog').classList.add('on');
 }
-
 function addSecondPage(){
   document.getElementById('page2Dialog').classList.remove('on');
   window._pendingIsPage2=true;
   setTimeout(()=>document.getElementById('photoInput').click(),200);
 }
-
 function skipSecondPage(){
   document.getElementById('page2Dialog').classList.remove('on');
 }
-
 function retakePhoto(){
   window._pendingPhoto=null;
   document.getElementById('photoConfirm').classList.remove('on');
   document.getElementById('photoInput').value='';
-  // Re-open camera
   setTimeout(()=>document.getElementById('photoInput').click(),200);
 }
 
@@ -832,25 +813,18 @@ async function submitBeleg(){
     if(photo2){
       doc.addPage();
       doc.setFillColor(250,248,243);doc.rect(0,0,W,H,'F');
-      doc.setFillColor(212,168,67);doc.rect(0,0,W,0.8,'F');
-      doc.setFillColor(212,168,67);doc.rect(0,0,0.8,H,'F');
-      doc.setFillColor(212,168,67);doc.rect(W-0.8,0,0.8,H,'F');
-      doc.setFillColor(212,168,67);doc.rect(0,H-0.8,W,0.8,'F');
+      doc.setFillColor(212,168,67);doc.rect(0,0,W,0.8,'F');doc.rect(0,0,0.8,H,'F');doc.rect(W-0.8,0,0.8,H,'F');doc.rect(0,H-0.8,W,0.8,'F');
       doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,120,48);
       doc.text('ORIGINAL-BELEG — SEITE 2',14,14);
-      doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);
-      doc.text(bid,14,20);
-      doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(138,133,128);
-      doc.text(ts,14,26);
-      doc.setDrawColor(212,168,67);doc.setLineWidth(0.3);
-      doc.line(14,30,W-14,30);
+      doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(17,17,17);doc.text(bid,14,20);
+      doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(138,133,128);doc.text(ts,14,26);
+      doc.setDrawColor(212,168,67);doc.setLineWidth(0.3);doc.line(14,30,W-14,30);
       const im2=new Image();
       await new Promise(r=>{im2.onload=r;im2.onerror=r;im2.src=photo2;});
       const iw2=im2.naturalWidth||1,ih2=im2.naturalHeight||1;
       let rw2=maxW,rh2=(ih2/iw2)*maxW;
       if(rh2>maxH){rh2=maxH;rw2=(iw2/ih2)*maxH;}
-      const ix2=(W-rw2)/2;
-      try{doc.addImage(photo2,'JPEG',ix2,34,rw2,rh2);}catch(e){}
+      try{doc.addImage(photo2,'JPEG',(W-rw2)/2,34,rw2,rh2);}catch(e){}
       doc.setFontSize(7);doc.setTextColor(180,175,165);
       doc.text('GoBD · Kassel Unternehmensgruppe · '+ts+' · Hash: '+hashShort,W/2,H-4,{align:'center'});
     }
