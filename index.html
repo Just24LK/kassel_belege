@@ -883,9 +883,6 @@ async function submitBeleg(){
       doc.text('GoBD · Kassel Unternehmensgruppe · '+ts+' · Hash: '+hashShort+' · Seite 2/2',W/2,H-4,{align:'center'});
     }
 
-    // ── OUTPUT: base64 string ──
-    const pdfBase64=doc.output('datauristring');
-
     // Save history (max 5)
     const tsDisplay=now.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr';
     hist.push({ts:now.toISOString(),ts_display:tsDisplay,firma,zahlart,kfz,objekt:obj,id:bid});
@@ -893,49 +890,40 @@ async function submitBeleg(){
     save();
 
     document.getElementById('loader').classList.remove('on');
+    toast('✦ Beleg '+bid+' erfasst');
+    showScreen('home');
 
-    // PDF als Blob für natives iOS Share Sheet
+    // 1) PDF herunterladen
     const pdfBlob=doc.output('blob');
-    const pdfFile=new File([pdfBlob],'Beleg_'+bid+'.pdf',{type:'application/pdf'});
-
-    // Immer zuerst PDF herunterladen
     const a=document.createElement('a');
     a.href=URL.createObjectURL(pdfBlob);
     a.download='Beleg_'+bid+'.pdf';
     document.body.appendChild(a);a.click();document.body.removeChild(a);
 
-    // iOS Share Sheet: Mail auswählen → PDF automatisch als Anhang
-    if(navigator.share && navigator.canShare && navigator.canShare({files:[pdfFile]})){
-      try{
-        await navigator.share({files:[pdfFile],title:'Beleg '+bid,text:firma+' · '+zahlart+'\nID: '+bid+'\nHash: '+hashShort});
-      }catch(e){/* User cancelled oder nicht unterstützt */}
-    }
-    // Immer mailto öffnen mit vorausgefüllter Empfängeradresse
+    // 2) Mail-App öffnen mit vorausgefüllter Adresse + Betreff + Text
+    //    (kurze Verzögerung damit der Download startet bevor Safari wechselt)
     setTimeout(()=>{
+      const mailBody=
+        '✦ KASSEL UNTERNEHMENSGRUPPE — BELEGERFASSUNG\n\n'+
+        'Beleg-ID:        '+bid+'\n'+
+        'Unternehmen: '+firma+'\n'+
+        'Zahlart:           '+zahlart+'\n'+
+        (kfz?'KFZ:                '+kfz+'\n':'')+
+        (obj?'Objekt:           '+obj+'\n':'')+
+        (bew.length?'Bewirtung:     '+bew.join(', ')+'\n':'')+
+        (gast?'Gäste:             '+gast+'\n':'')+
+        (grund?'Grund:            '+grund+'\n':'')+
+        (info?'Info:                 '+info+'\n':'')+
+        '\nErfasst von:  '+cfg.activeUser+'\n'+
+        'Zeitpunkt:      '+tsDisplay+'\n'+
+        'Hash (SHA-256): '+hashShort+'\n\n'+
+        '→ PDF ist heruntergeladen — bitte als Anhang hinzufügen.\n'+
+        '→ Diese Mail wird in Mailstore archiviert.\n'+
+        'GoBD-konform · §146a AO · GoBD Rz. 130ff.';
       window.location.href='mailto:'+mailTo
         +'?subject='+encodeURIComponent('Beleg '+bid+' – '+firma)
-        +'&body='+encodeURIComponent(
-          '✦ KASSEL UNTERNEHMENSGRUPPE — BELEGERFASSUNG\n\n'+
-          'Beleg-ID:        '+bid+'\n'+
-          'Unternehmen: '+firma+'\n'+
-          'Zahlart:           '+zahlart+'\n'+
-          (kfz?'KFZ:                '+kfz+'\n':'')+
-          (obj?'Objekt:           '+obj+'\n':'')+
-          (bew.length?'Bewirtung:     '+bew.join(', ')+'\n':'')+
-          (gast?'Gäste:             '+gast+'\n':'')+
-          (grund?'Grund:            '+grund+'\n':'')+
-          (info?'Info:                 '+info+'\n':'')+
-          '\nErfasst von:  '+cfg.activeUser+'\n'+
-          'Zeitpunkt:      '+tsDisplay+'\n'+
-          'Hash (SHA-256): '+hashShort+'\n\n'+
-          '→ PDF wurde heruntergeladen — bitte als Anhang hinzufügen.\n'+
-          '→ Diese Mail wird in Mailstore archiviert.\n'+
-          '→ Anschließend Weiterleitung an DATEV Unternehmen Online.\n\n'+
-          'GoBD-konform · §146a AO · Bildliche Erfassung gemäß GoBD Rz. 130ff.'
-        );
-    },600);
-    toast('✦ Beleg '+bid+' erfasst');
-    showScreen('home');
+        +'&body='+encodeURIComponent(mailBody);
+    },800);
 
   }catch(err){
     document.getElementById('loader').classList.remove('on');
